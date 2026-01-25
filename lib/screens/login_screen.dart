@@ -4,6 +4,9 @@ import '../config/theme.dart';
 import '../config/routes.dart';
 import '../providers/auth_provider.dart';
 
+// 개발 모드 여부 확인용
+bool get _isDevMode => AuthProvider.isDevMode;
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -70,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // 로고 및 캐릭터
               Column(
                 children: [
-                  // 캐릭터
+                  // 로고 이미지
                   Container(
                     width: 160,
                     height: 160,
@@ -90,10 +93,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Text(
-                        '🧚',
-                        style: TextStyle(fontSize: 80),
+                    child: ClipOval(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Image.asset(
+                          'assets/images/character/pangpangpang_logo_small.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Text('🧚', style: TextStyle(fontSize: 80)),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -179,9 +190,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
-                                    '카카오로 시작하기',
-                                    style: TextStyle(
+                                  Text(
+                                    _isDevMode ? '🔧 개발 모드로 시작하기' : '카카오로 시작하기',
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                     ),

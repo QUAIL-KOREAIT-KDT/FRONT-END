@@ -11,14 +11,41 @@ class AuthProvider extends ChangeNotifier {
 
   final _storage = const FlutterSecureStorage();
 
+  // ============================================================
+  // 🔧 개발 모드 설정 - 에뮬레이터에서 카카오 로그인 우회
+  // 실제 기기 테스트 시 false로 변경하세요
+  // ============================================================
+  static const bool _devBypassKakaoLogin = true;
+  // ============================================================
+
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
+  static bool get isDevMode => _devBypassKakaoLogin;
 
   // 카카오 로그인
   Future<bool> loginWithKakao() async {
     _isLoading = true;
     notifyListeners();
+
+    // 개발 모드: 카카오 로그인 우회
+    if (_devBypassKakaoLogin) {
+      debugPrint('🔧 [개발 모드] 카카오 로그인 우회 - 더미 사용자로 로그인');
+      await Future.delayed(const Duration(milliseconds: 500)); // 로딩 효과
+
+      _user = UserModel(
+        id: 'dev_user_001',
+        email: 'dev@test.com',
+        nickname: '개발자',
+        profileImage: null,
+        isOnboardingCompleted: false,
+      );
+
+      _isLoggedIn = true;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
 
     try {
       OAuthToken token;
@@ -105,6 +132,12 @@ class AuthProvider extends ChangeNotifier {
 
   // 저장된 토큰으로 자동 로그인
   Future<bool> autoLogin() async {
+    // 개발 모드: 자동 로그인 건너뛰기 (매번 로그인 화면 표시)
+    if (_devBypassKakaoLogin) {
+      debugPrint('🔧 [개발 모드] 자동 로그인 건너뜀');
+      return false;
+    }
+
     try {
       final accessToken = await _storage.read(key: 'kakao_access_token');
       if (accessToken == null) {
@@ -140,6 +173,15 @@ class AuthProvider extends ChangeNotifier {
 
   // 로그아웃
   Future<void> logout() async {
+    // 개발 모드: 간단히 로그아웃 처리
+    if (_devBypassKakaoLogin) {
+      debugPrint('🔧 [개발 모드] 로그아웃');
+      _user = null;
+      _isLoggedIn = false;
+      notifyListeners();
+      return;
+    }
+
     try {
       await UserApi.instance.logout();
       await _storage.delete(key: 'kakao_access_token');

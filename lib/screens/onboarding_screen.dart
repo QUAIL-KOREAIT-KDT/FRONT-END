@@ -11,9 +11,18 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  final TextEditingController _nicknameController = TextEditingController();
   String _selectedLocation = '서울특별시 강남구';
   double _selectedTemperature = 22.0;
+  double _selectedHumidity = 50.0; // 평균 실내 습도
   int _selectedDirectionIndex = 0;
+  bool _isBasement = false; // 반지하 여부
+
+  @override
+  void dispose() {
+    _nicknameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-              // 캐릭터
+              // 로고 이미지
               Container(
                 width: 140,
                 height: 140,
@@ -78,18 +87,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     strokeAlign: BorderSide.strokeAlignOutside,
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('🧚', style: TextStyle(fontSize: 48)),
-                    Text(
-                      '팡이',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.gray500,
-                      ),
+                child: ClipOval(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Image.asset(
+                      'assets/images/character/pangpangpang_logo_small.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('🧚', style: TextStyle(fontSize: 48)),
+                            Text(
+                              '팡이',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.gray500,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                  ],
+                  ),
                 ),
               ),
 
@@ -123,16 +143,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 28),
 
+                      // 닉네임 입력
+                      _buildLabel('👤 닉네임'),
+                      const SizedBox(height: 8),
+                      _buildNicknameInput(),
+                      const SizedBox(height: 20),
+
                       // 거주지 위치
                       _buildLabel('📍 거주지 위치'),
                       const SizedBox(height: 8),
                       _buildFilledInput(_selectedLocation),
                       const SizedBox(height: 20),
 
+                      // 반지하 여부
+                      _buildLabel('🏠 반지하 여부'),
+                      const SizedBox(height: 8),
+                      _buildBasementSelector(),
+                      const SizedBox(height: 20),
+
                       // 평균 실내 온도
                       _buildLabel('🌡️ 평균 실내 온도'),
                       const SizedBox(height: 8),
                       _buildTemperatureSlider(),
+                      const SizedBox(height: 20),
+
+                      // 평균 실내 습도 (선택사항)
+                      _buildLabel('💧 평균 실내 습도 (선택)'),
+                      const SizedBox(height: 8),
+                      _buildHumiditySlider(),
                       const SizedBox(height: 20),
 
                       // 집 방향
@@ -216,6 +254,116 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  Widget _buildNicknameInput() {
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.gray200, width: 2),
+      ),
+      child: TextField(
+        controller: _nicknameController,
+        decoration: InputDecoration(
+          hintText: '닉네임을 입력해주세요',
+          hintStyle: TextStyle(
+            fontSize: 15,
+            color: AppTheme.gray400,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppTheme.gray800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBasementSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _isBasement = false;
+              });
+            },
+            child: Container(
+              height: 52,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: !_isBasement ? AppTheme.mintLight : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: !_isBasement ? AppTheme.mintPrimary : AppTheme.gray200,
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '일반 주거',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: !_isBasement ? AppTheme.mintDark : AppTheme.gray500,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _isBasement = true;
+              });
+            },
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: _isBasement ? AppTheme.pinkLight : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _isBasement ? AppTheme.pinkPrimary : AppTheme.gray200,
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '반지하',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _isBasement
+                            ? AppTheme.pinkPrimary
+                            : AppTheme.gray500,
+                      ),
+                    ),
+                    if (_isBasement) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '⚠️',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFilledInput(String value) {
     return Container(
       width: double.infinity,
@@ -282,6 +430,92 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildHumiditySlider() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.gray200, width: 2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${_selectedHumidity.toInt()}%',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mintPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getHumidityColor().withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _getHumidityStatus(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _getHumidityColor(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: _selectedHumidity,
+            min: 20,
+            max: 80,
+            divisions: 60,
+            activeColor: AppTheme.mintPrimary,
+            inactiveColor: AppTheme.gray200,
+            onChanged: (value) {
+              setState(() {
+                _selectedHumidity = value;
+              });
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('20%',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+              Text('80%',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '모르시면 50%로 두셔도 괜찮아요',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppTheme.gray400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHumidityStatus() {
+    if (_selectedHumidity < 40) return '건조';
+    if (_selectedHumidity < 60) return '적정';
+    return '습함';
+  }
+
+  Color _getHumidityColor() {
+    if (_selectedHumidity < 40) return Colors.orange;
+    if (_selectedHumidity < 60) return AppTheme.mintPrimary;
+    return AppTheme.pinkPrimary;
   }
 
   Widget _buildDirectionSelector() {

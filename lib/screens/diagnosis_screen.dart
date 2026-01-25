@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
@@ -12,6 +14,82 @@ class DiagnosisScreen extends StatefulWidget {
 
 class _DiagnosisScreenState extends State<DiagnosisScreen> {
   int _selectedLocationIndex = 0;
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
+
+  // 카메라로 사진 촬영
+  Future<void> _takePhoto() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        setState(() {
+          _selectedImage = File(photo.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('카메라를 사용할 수 없습니다: $e'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // 갤러리에서 사진 선택
+  Future<void> _pickFromGallery() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('갤러리를 열 수 없습니다: $e'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // 선택한 이미지 삭제
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,74 +145,15 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                     strokeAlign: BorderSide.strokeAlignInside,
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // 아이콘
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_outlined,
-                        size: 40,
-                        color: AppTheme.mintPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '곰팡이 사진을 올려주세요',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.gray700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '선명한 사진일수록 정확해요!',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.gray400,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 버튼들
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildUploadButton(
-                          icon: '📷',
-                          label: '촬영',
-                          isPrimary: true,
-                          onTap: () {
-                            // TODO: 카메라 열기
-                          },
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.mintPrimary,
                         ),
-                        const SizedBox(width: 12),
-                        _buildUploadButton(
-                          icon: '🖼️',
-                          label: '앨범',
-                          isPrimary: false,
-                          onTap: () {
-                            // TODO: 갤러리 열기
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      )
+                    : _selectedImage != null
+                        ? _buildImagePreview()
+                        : _buildUploadPlaceholder(),
               ),
             ),
 
@@ -179,19 +198,23 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.diagnosisResult);
-                },
+                onPressed: _selectedImage != null
+                    ? () {
+                        Navigator.pushNamed(context, AppRoutes.diagnosisResult);
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.mintPrimary,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppTheme.gray200,
+                  disabledForegroundColor: AppTheme.gray400,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                child: const Text(
-                  '분석하기',
-                  style: TextStyle(
+                child: Text(
+                  _selectedImage != null ? '분석하기' : '사진을 먼저 선택해주세요',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -235,6 +258,183 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // 업로드 플레이스홀더 (이미지 선택 전)
+  Widget _buildUploadPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // 아이콘
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.camera_alt_outlined,
+            size: 40,
+            color: AppTheme.mintPrimary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          '곰팡이 사진을 올려주세요',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '선명한 사진일수록 정확해요!',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.gray400,
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 버튼들
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildUploadButton(
+              icon: '📷',
+              label: '촬영',
+              isPrimary: true,
+              onTap: _takePhoto,
+            ),
+            const SizedBox(width: 12),
+            _buildUploadButton(
+              icon: '🖼️',
+              label: '앨범',
+              isPrimary: false,
+              onTap: _pickFromGallery,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // 이미지 미리보기 (이미지 선택 후)
+  Widget _buildImagePreview() {
+    return Stack(
+      children: [
+        // 이미지
+        ClipRRect(
+          borderRadius: BorderRadius.circular(29),
+          child: SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: Image.file(
+              _selectedImage!,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        // 오버레이 (하단)
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(29),
+                bottomRight: Radius.circular(29),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7),
+                ],
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildUploadButton(
+                  icon: '📷',
+                  label: '다시 촬영',
+                  isPrimary: true,
+                  onTap: _takePhoto,
+                ),
+                const SizedBox(width: 12),
+                _buildUploadButton(
+                  icon: '🖼️',
+                  label: '앨범',
+                  isPrimary: false,
+                  onTap: _pickFromGallery,
+                ),
+              ],
+            ),
+          ),
+        ),
+        // 삭제 버튼 (우상단)
+        Positioned(
+          top: 12,
+          right: 12,
+          child: GestureDetector(
+            onTap: _removeImage,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+        // 선택 완료 표시 (좌상단)
+        Positioned(
+          top: 12,
+          left: 12,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.mintPrimary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 16),
+                SizedBox(width: 4),
+                Text(
+                  '사진 선택됨',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
