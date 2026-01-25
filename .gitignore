@@ -1,0 +1,154 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+# 팀 설정 공유를 원하면 아래 파일만 포함
+# !.vscode/launch.json
+# !.vscode/extensions.json
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# ========================================
+# 팡팡팡 프로젝트 추가 설정
+# ========================================
+
+# 환경 변수 및 API 키
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.dart
+
+# Firebase 설정 파일 (민감 정보 포함)
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+
+# Kakao SDK 설정
+kakao_config.dart
+/android/app/src/main/res/values/kakao_strings.xml
+/ios/Runner/Info.plist.backup
+
+# 백엔드 API 설정
+lib/config/api_config.dart
+
+# 테스트 커버리지
+/test/.test_coverage.dart
+coverage/
+lcov.info
+
+# 임시 파일 및 캐시
+*.tmp
+*.temp
+*.cache
+.fvm/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 빌드 결과물 (웹 배포용 제외)
+# 웹 빌드를 팀원에게 공유하려면 아래 주석 해제
+# !/build/web/
+
+# ========================================
+# 문서 및 설명 파일 (GitHub 업로드 제외)
+# ========================================
+
+# 프로젝트 기획/디자인 문서
+1월 22일 디자인 요구사항*.md
+계획안*.md
+
+# 카카오 로그인 설정 가이드 (설정 완료 후 불필요)
+KAKAO_LOGIN_README.md
+KAKAO_LOGIN_SETUP.md
+ANDROID_KAKAO_SETUP.md
+IOS_KAKAO_SETUP.md
+
+# Claude AI 관련 설정
+claude.md
+
+# IDE/DevTools 설정 파일
+devtools_options.yaml
+*.iml
+
+# 로컬 설정 파일
+android/local.properties
+
+# iOS 빌드
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Android 빌드
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+# 서명 키 (절대 커밋 금지!)
+*.jks
+*.keystore
+
+# Web
+/web/firebase-config.js
+
+# claude AI 관련 민감 정보
+.claude

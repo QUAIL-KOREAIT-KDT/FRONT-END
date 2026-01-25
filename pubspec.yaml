@@ -1,0 +1,64 @@
+name: pangpangpang
+description: A new Flutter project.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 상태 관리
+  provider: ^6.1.2
+
+  # 네트워크 통신
+  dio: ^5.4.3+1 # HTTP 클라이언트 (http보다 강력)
+
+  # 카카오 로그인
+  kakao_flutter_sdk_user: ^1.9.5
+
+  # 로컬 저장소
+  shared_preferences: ^2.2.3 # 간단한 데이터 저장 (토큰 등)
+  flutter_secure_storage: ^9.2.2 # 보안 저장소 (민감 정보)
+
+  # 이미지 관련
+  image_picker: ^1.1.2 # 카메라/갤러리 이미지 선택
+  cached_network_image: ^3.3.1 # 이미지 캐싱
+
+  # UI 관련
+  flutter_svg: ^2.0.10+1 # SVG 이미지 지원
+  google_fonts: ^6.2.1 # 구글 폰트 (Noto Sans KR)
+  shimmer: ^3.0.0 # 로딩 스켈레톤 효과
+
+  # 푸시 알림
+  firebase_core: ^2.31.0
+  firebase_messaging: ^14.9.2
+  flutter_local_notifications: ^17.2.1+2
+
+  # 위치 정보
+  geolocator: ^12.0.0 # GPS 위치
+  geocoding: ^3.0.0 # 좌표 → 주소 변환
+
+  # 센서 (팡이털기용)
+  sensors_plus: ^5.0.1 # 가속도계 (흔들기 감지)
+
+  # 유틸리티
+  intl: ^0.19.0 # 날짜/숫자 포맷
+  url_launcher: ^6.2.6 # 외부 링크 열기
+  permission_handler: ^11.3.1 # 권한 요청 관리
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/character/
+    - assets/images/mold/
+    - assets/icons/
+    - assets/animations/
