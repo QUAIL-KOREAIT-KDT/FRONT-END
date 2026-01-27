@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
@@ -14,8 +15,12 @@ import 'providers/iot_provider.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 카카오 SDK 초기화
-  KakaoSdk.init(nativeAppKey: AppConstants.kakaoNativeAppKey);
+  // 카카오 SDK 초기화 (웹/네이티브 분기)
+  if (kIsWeb) {
+    KakaoSdk.init(javaScriptAppKey: AppConstants.kakaoJavaScriptKey);
+  } else {
+    KakaoSdk.init(nativeAppKey: AppConstants.kakaoNativeAppKey);
+  }
 
   runApp(const MyApp());
 }

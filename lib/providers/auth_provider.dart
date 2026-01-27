@@ -3,24 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user.dart';
+import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
   bool _isLoggedIn = false;
+  bool _isNewUser = false;
 
   final _storage = const FlutterSecureStorage();
+  final _authService = AuthService();
 
   // ============================================================
-  // 🔧 개발 모드 설정 - 에뮬레이터에서 카카오 로그인 우회
+  // 개발 모드 설정 - 에뮬레이터에서 카카오 로그인 우회
   // 실제 기기 테스트 시 false로 변경하세요
   // ============================================================
-  static const bool _devBypassKakaoLogin = true;
+  static const bool _devBypassKakaoLogin = false;
   // ============================================================
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
+  bool get isNewUser => _isNewUser;
   static bool get isDevMode => _devBypassKakaoLogin;
 
   // 카카오 로그인
@@ -30,8 +34,8 @@ class AuthProvider extends ChangeNotifier {
 
     // 개발 모드: 카카오 로그인 우회
     if (_devBypassKakaoLogin) {
-      debugPrint('🔧 [개발 모드] 카카오 로그인 우회 - 더미 사용자로 로그인');
-      await Future.delayed(const Duration(milliseconds: 500)); // 로딩 효과
+      debugPrint('[개발 모드] 카카오 로그인 우회 - 더미 사용자로 로그인');
+      await Future.delayed(const Duration(milliseconds: 500));
 
       _user = UserModel(
         id: 'dev_user_001',
@@ -42,6 +46,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _isLoggedIn = true;
+      _isNewUser = true;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -53,20 +58,17 @@ class AuthProvider extends ChangeNotifier {
       // 카카오톡 설치 여부 확인
       if (await isKakaoTalkInstalled()) {
         try {
-          // 카카오톡으로 로그인
           token = await UserApi.instance.loginWithKakaoTalk();
           debugPrint('카카오톡으로 로그인 성공');
         } catch (error) {
           debugPrint('카카오톡으로 로그인 실패 $error');
 
-          // 사용자가 카카오톡 설치 후 디바이스 권한 요청 화면에서 로그인을 취소한 경우,
-          // 의도적인 로그인 취소로 보고 카카오계정으로 로그인 시도 없이 로그인 취소로 처리 (선택 사항)
           if (error is PlatformException && error.code == 'CANCELED') {
             _isLoading = false;
             notifyListeners();
             return false;
           }
-          // 카카오톡에 연결된 카카오계정이 없는 경우, 카카오계정으로 로그인
+
           try {
             token = await UserApi.instance.loginWithKakaoAccount();
             debugPrint('카카오계정으로 로그인 성공');
@@ -78,7 +80,6 @@ class AuthProvider extends ChangeNotifier {
           }
         }
       } else {
-        // 카카오톡 미설치 시 카카오계정으로 로그인
         try {
           token = await UserApi.instance.loginWithKakaoAccount();
           debugPrint('카카오계정으로 로그인 성공');
@@ -90,25 +91,23 @@ class AuthProvider extends ChangeNotifier {
         }
       }
 
-      // 토큰 저장
-      await _saveToken(token);
+      // 카카오 토큰 저장
+      await _saveKakaoToken(token);
 
-      // 사용자 정보 가져오기
-      final kakaoUser = await UserApi.instance.me();
+      // [백엔드 연동] 카카오 토큰으로 백엔드 로그인 → JWT 발급
+      final authResponse = await _authService.loginWithKakao(token.accessToken);
 
-      // 로컬 UserModel로 변환
+      // 사용자 정보 설정
       _user = UserModel(
-        id: kakaoUser.id.toString(),
-        email: kakaoUser.kakaoAccount?.email ?? '',
-        nickname: kakaoUser.kakaoAccount?.profile?.nickname ?? '사용자',
-        profileImage: kakaoUser.kakaoAccount?.profile?.profileImageUrl,
-        isOnboardingCompleted: false, // 최초 로그인 시 false, 서버에서 확인 필요
+        id: authResponse.userId.toString(),
+        nickname: authResponse.nickname ?? '사용자',
+        isOnboardingCompleted: !authResponse.isNewUser,
       );
 
       _isLoggedIn = true;
+      _isNewUser = authResponse.isNewUser;
 
-      // TODO: 백엔드 서버로 토큰 전송 및 JWT 발급
-      // await _sendTokenToServer(token.accessToken);
+      debugPrint('[AuthProvider] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');
 
       _isLoading = false;
       notifyListeners();
@@ -121,32 +120,39 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // 토큰 저장
-  Future<void> _saveToken(OAuthToken token) async {
+  // 카카오 토큰 저장
+  Future<void> _saveKakaoToken(OAuthToken token) async {
     await _storage.write(key: 'kakao_access_token', value: token.accessToken);
     if (token.refreshToken != null) {
-      await _storage.write(
-          key: 'kakao_refresh_token', value: token.refreshToken);
+      await _storage.write(key: 'kakao_refresh_token', value: token.refreshToken);
     }
   }
 
   // 저장된 토큰으로 자동 로그인
   Future<bool> autoLogin() async {
-    // 개발 모드: 자동 로그인 건너뛰기 (매번 로그인 화면 표시)
     if (_devBypassKakaoLogin) {
-      debugPrint('🔧 [개발 모드] 자동 로그인 건너뜀');
+      debugPrint('[개발 모드] 자동 로그인 건너뜀');
       return false;
     }
 
     try {
-      final accessToken = await _storage.read(key: 'kakao_access_token');
-      if (accessToken == null) {
+      // JWT 토큰 확인
+      final hasToken = await _authService.hasValidToken();
+      if (!hasToken) {
+        debugPrint('[AutoLogin] JWT 토큰 없음');
         return false;
       }
 
-      // 토큰 정보 확인
+      // 카카오 토큰 확인
+      final kakaoToken = await _storage.read(key: 'kakao_access_token');
+      if (kakaoToken == null) {
+        debugPrint('[AutoLogin] 카카오 토큰 없음');
+        return false;
+      }
+
+      // 카카오 토큰 유효성 체크
       final tokenInfo = await UserApi.instance.accessTokenInfo();
-      debugPrint('토큰 유효성 체크 성공 ${tokenInfo.id} ${tokenInfo.expiresIn}');
+      debugPrint('[AutoLogin] 토큰 유효 - expiresIn: ${tokenInfo.expiresIn}');
 
       // 사용자 정보 가져오기
       final kakaoUser = await UserApi.instance.me();
@@ -156,43 +162,51 @@ class AuthProvider extends ChangeNotifier {
         email: kakaoUser.kakaoAccount?.email ?? '',
         nickname: kakaoUser.kakaoAccount?.profile?.nickname ?? '사용자',
         profileImage: kakaoUser.kakaoAccount?.profile?.profileImageUrl,
-        isOnboardingCompleted: true, // 기존 사용자는 온보딩 완료로 간주
+        isOnboardingCompleted: true,
       );
 
       _isLoggedIn = true;
+      _isNewUser = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('자동 로그인 실패 $e');
-      // 토큰이 만료된 경우 삭제
-      await _storage.delete(key: 'kakao_access_token');
-      await _storage.delete(key: 'kakao_refresh_token');
+      debugPrint('[AutoLogin] 실패: $e');
+      // 토큰 정리
+      await _clearAllTokens();
       return false;
     }
   }
 
+  // 모든 토큰 삭제
+  Future<void> _clearAllTokens() async {
+    await _storage.delete(key: 'kakao_access_token');
+    await _storage.delete(key: 'kakao_refresh_token');
+    await _authService.logout();
+  }
+
   // 로그아웃
   Future<void> logout() async {
-    // 개발 모드: 간단히 로그아웃 처리
     if (_devBypassKakaoLogin) {
-      debugPrint('🔧 [개발 모드] 로그아웃');
+      debugPrint('[개발 모드] 로그아웃');
       _user = null;
       _isLoggedIn = false;
+      _isNewUser = false;
       notifyListeners();
       return;
     }
 
     try {
       await UserApi.instance.logout();
-      await _storage.delete(key: 'kakao_access_token');
-      await _storage.delete(key: 'kakao_refresh_token');
-      debugPrint('로그아웃 성공');
+      debugPrint('카카오 로그아웃 성공');
     } catch (error) {
-      debugPrint('로그아웃 실패 $error');
+      debugPrint('카카오 로그아웃 실패: $error');
     }
+
+    await _clearAllTokens();
 
     _user = null;
     _isLoggedIn = false;
+    _isNewUser = false;
     notifyListeners();
   }
 
@@ -200,15 +214,16 @@ class AuthProvider extends ChangeNotifier {
   Future<void> deleteAccount() async {
     try {
       await UserApi.instance.unlink();
-      await _storage.delete(key: 'kakao_access_token');
-      await _storage.delete(key: 'kakao_refresh_token');
-      debugPrint('회원 탈퇴 성공');
+      debugPrint('카카오 연결 해제 성공');
     } catch (error) {
-      debugPrint('회원 탈퇴 실패 $error');
+      debugPrint('카카오 연결 해제 실패: $error');
     }
+
+    await _clearAllTokens();
 
     _user = null;
     _isLoggedIn = false;
+    _isNewUser = false;
     notifyListeners();
   }
 
@@ -225,9 +240,8 @@ class AuthProvider extends ChangeNotifier {
         houseDirection: direction,
         isOnboardingCompleted: true,
       );
+      _isNewUser = false;
       notifyListeners();
-
-      // TODO: 백엔드에 온보딩 정보 저장
     }
   }
 

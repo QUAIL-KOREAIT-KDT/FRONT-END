@@ -1,9 +1,10 @@
 class AppConstants {
   // API URLs
-  static const String baseUrl = 'http://your-server-url.com/api';
+  static const String baseUrl = 'http://localhost:8000/api';
 
-  // 카카오 로그인 (나중에 설정)
+  // 카카오 로그인 키
   static const String kakaoNativeAppKey = '14cd88ec2188fe6269f64fca08013069';
+  static const String kakaoJavaScriptKey = '27933cda9860739d03f4eb0a5263e68c';
 
   // 위험도 임계값
   static const int riskSafeMax = 30;

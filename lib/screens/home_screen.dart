@@ -10,12 +10,99 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // 더미 데이터
-  final int _riskPercentage = 20;
+  final int _riskPercentage = 70;
   final String _location = '서울특별시 강남구';
+
+  // 애니메이션 컨트롤러
+  AnimationController? _animationController;
+  Animation<double>? _swingAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAnimation();
+  }
+
+  void _initAnimation() {
+    _animationController?.dispose();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _swingAnimation = Tween<double>(begin: -10, end: 10).animate(
+      CurvedAnimation(
+        parent: _animationController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    super.dispose();
+  }
+
+  // 위험도에 따른 이미지 반환
+  String _getRiskImage() {
+    if (_riskPercentage <= 30) {
+      return 'assets/images/character/pang_low.png';
+    } else if (_riskPercentage <= 60) {
+      return 'assets/images/character/pang_middle.png';
+    } else {
+      return 'assets/images/character/pang_high.png';
+    }
+  }
+
+  // 위험도에 따른 메시지 반환
+  String _getRiskMessage() {
+    if (_riskPercentage <= 30) {
+      return '곰팡이 걱정 없는 날이에요! 🎉';
+    } else if (_riskPercentage <= 60) {
+      return '환기가 필요해요! 💨';
+    } else {
+      return '곰팡이 주의가 필요해요! ⚠️';
+    }
+  }
+
+  // 캐릭터 이미지 위젯
+  Widget _buildCharacterImage() {
+    return Image.asset(
+      _getRiskImage(),
+      width: 160,
+      height: 160,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // 이미지 로드 실패 시 기본 이모지 표시
+        return Container(
+          width: 160,
+          height: 160,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [AppTheme.mintLight2, AppTheme.pinkLight2],
+            ),
+          ),
+          child: Center(
+            child: Text(
+              _riskPercentage <= 30
+                  ? '😊'
+                  : _riskPercentage <= 60
+                      ? '😐'
+                      : '😰',
+              style: const TextStyle(fontSize: 60),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 위치 바
                 _buildLocationBar(),
 
-                // 위험도 게이지
-                _buildRiskGauge(),
+                // 새로운 레이아웃: 바 게이지 + 캐릭터 이미지
+                _buildRiskDisplaySection(),
 
                 // 날씨 카드
                 _buildWeatherCard(),
@@ -180,6 +267,196 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // 새로운 위험도 표시 섹션 (바 게이지 + 캐릭터)
+  Widget _buildRiskDisplaySection() {
+    final riskColor = AppTheme.getRiskColor(_riskPercentage);
+    final riskStatus = AppTheme.getRiskStatus(_riskPercentage);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // 좌측: 수직 바 게이지
+            _buildVerticalBarGauge(riskColor, riskStatus),
+
+            const SizedBox(width: 24),
+
+            // 우측: 캐릭터 이미지 + 상태 정보
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 애니메이션 캐릭터 이미지
+                  _swingAnimation != null
+                      ? AnimatedBuilder(
+                          animation: _swingAnimation!,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(_swingAnimation!.value, 0),
+                              child: child,
+                            );
+                          },
+                          child: _buildCharacterImage(),
+                        )
+                      : _buildCharacterImage(),
+
+                  const SizedBox(height: 16),
+
+                  // 상태 메시지
+                  Text(
+                    _getRiskMessage(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 수직 바 게이지
+  Widget _buildVerticalBarGauge(Color riskColor, String riskStatus) {
+    return Column(
+      children: [
+        // 바 게이지
+        Container(
+          width: 40,
+          height: 200,
+          decoration: BoxDecoration(
+            color: AppTheme.gray100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              // 배경 그라데이션 (위험도 구간 표시)
+              Container(
+                width: 40,
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      AppTheme.safe.withOpacity(0.3),
+                      AppTheme.caution.withOpacity(0.3),
+                      AppTheme.warning.withOpacity(0.3),
+                      AppTheme.danger.withOpacity(0.3),
+                    ],
+                    stops: const [0.0, 0.3, 0.6, 1.0],
+                  ),
+                ),
+              ),
+
+              // 채워진 게이지
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                width: 40,
+                height: 200 * (_riskPercentage / 100),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      riskColor.withOpacity(0.8),
+                      riskColor,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: riskColor.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 퍼센트 표시
+              Positioned(
+                bottom: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    '$_riskPercentage%',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: _riskPercentage > 20 ? Colors.white : riskColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // 위험도 텍스트
+        Text(
+          '곰팡이',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray500,
+          ),
+        ),
+        Text(
+          '위험도',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray500,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // 상태 뱃지
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: riskColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            riskStatus,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: riskColor,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
