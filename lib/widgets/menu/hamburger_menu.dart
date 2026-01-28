@@ -4,8 +4,39 @@ import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../providers/auth_provider.dart';
 
-class HamburgerMenu extends StatelessWidget {
+class HamburgerMenu extends StatefulWidget {
   const HamburgerMenu({super.key});
+
+  @override
+  State<HamburgerMenu> createState() => _HamburgerMenuState();
+}
+
+class _HamburgerMenuState extends State<HamburgerMenu>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _badgeAnimController;
+  late Animation<double> _badgeGlowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _badgeAnimController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _badgeGlowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _badgeAnimController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _badgeAnimController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +67,9 @@ class HamburgerMenu extends StatelessWidget {
                       iconColor: AppTheme.pinkPrimary,
                       label: '오늘의 팡이',
                       route: AppRoutes.fortune,
+                      badge: 'HOT',
+                      badgeColors: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                      badgeIcon: '🔥',
                     ),
                     const Padding(
                       padding:
@@ -62,6 +96,9 @@ class HamburgerMenu extends StatelessWidget {
                       iconColor: AppTheme.mintPrimary,
                       label: '스마트홈 연동',
                       route: AppRoutes.iotSettings,
+                      badge: 'BETA',
+                      badgeColors: const [Color(0xFF7C83FD), Color(0xFFA78BFA)],
+                      badgeIcon: '🧪',
                     ),
                   ],
                 ),
@@ -140,6 +177,9 @@ class HamburgerMenu extends StatelessWidget {
     required Color iconColor,
     required String label,
     required String route,
+    String? badge,
+    List<Color>? badgeColors,
+    String? badgeIcon,
   }) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
     final isSelected = currentRoute == route;
@@ -185,11 +225,68 @@ class HamburgerMenu extends StatelessWidget {
                     color: isSelected ? AppTheme.mintPrimary : AppTheme.gray700,
                   ),
                 ),
+                if (badge != null) ...[
+                  const SizedBox(width: 8),
+                  _buildAnimatedBadge(
+                    badge,
+                    badgeColors ?? const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                    badgeIcon,
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimatedBadge(
+    String text,
+    List<Color> colors,
+    String? icon,
+  ) {
+    return AnimatedBuilder(
+      animation: _badgeGlowAnimation,
+      builder: (context, child) {
+        final glowOpacity = 0.40 + (_badgeGlowAnimation.value * 0.25);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: colors),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: colors.first.withOpacity(glowOpacity),
+                blurRadius: 8,
+                spreadRadius: 1,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Text(
+                  icon,
+                  style: const TextStyle(fontSize: 10),
+                ),
+                const SizedBox(width: 2),
+              ],
+              Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

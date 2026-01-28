@@ -39,6 +39,7 @@ dependencies:
   # 위치 정보
   geolocator: ^12.0.0 # GPS 위치
   geocoding: ^3.0.0 # 좌표 → 주소 변환
+  kpostal: 1.0.0 # 카카오 우편번호 서비스 (주소 검색)
 
   # 센서 (팡이털기용)
   sensors_plus: ^5.0.1 # 가속도계 (흔들기 감지)

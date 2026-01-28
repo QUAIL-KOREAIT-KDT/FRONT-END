@@ -1,5 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../../config/constants.dart';
+// 조건부 import: 웹에서는 stub, 네이티브에서는 kpostal 사용
+import '../address_search_stub.dart'
+    if (dart.library.io) '../address_search_native.dart' as address_search;
 
 class HomeInfoScreen extends StatefulWidget {
   const HomeInfoScreen({super.key});
@@ -9,12 +14,18 @@ class HomeInfoScreen extends StatefulWidget {
 }
 
 class _HomeInfoScreenState extends State<HomeInfoScreen> {
-  // 더미 데이터
-  String _houseType = '아파트';
-  String _roomCount = '3개';
-  String _area = '84㎡ (약 25평)';
-  bool _hasBasement = false;
-  bool _hasNorthFacing = true;
+  final TextEditingController _addressController = TextEditingController();
+  String _selectedLocation = '서울특별시 강남구'; // 더미 데이터
+  double _selectedTemperature = 22.0;
+  double _selectedHumidity = 50.0;
+  int _selectedDirectionIndex = 0;
+  bool _isBasement = false;
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,62 +40,42 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
             // 폼
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle('주거 형태'),
-                    _buildDropdownField(
-                      value: _houseType,
-                      items: ['아파트', '빌라/연립', '단독주택', '오피스텔', '기타'],
-                      onChanged: (value) => setState(() => _houseType = value!),
-                    ),
+                    const SizedBox(height: 20),
 
-                    const SizedBox(height: 24),
+                    // 거주지 위치
+                    _buildLabel('📍 거주지 위치'),
+                    const SizedBox(height: 8),
+                    _buildAddressInput(),
+                    const SizedBox(height: 20),
 
-                    _buildSectionTitle('방 개수'),
-                    _buildDropdownField(
-                      value: _roomCount,
-                      items: ['1개', '2개', '3개', '4개', '5개 이상'],
-                      onChanged: (value) => setState(() => _roomCount = value!),
-                    ),
+                    // 반지하 여부
+                    _buildLabel('🏠 반지하 여부'),
+                    const SizedBox(height: 8),
+                    _buildBasementSelector(),
+                    const SizedBox(height: 20),
 
-                    const SizedBox(height: 24),
+                    // 평균 실내 온도
+                    _buildLabel('🌡️ 평균 실내 온도'),
+                    const SizedBox(height: 8),
+                    _buildTemperatureSlider(),
+                    const SizedBox(height: 20),
 
-                    _buildSectionTitle('면적'),
-                    _buildDropdownField(
-                      value: _area,
-                      items: [
-                        '33㎡ 이하 (약 10평)',
-                        '49㎡ (약 15평)',
-                        '66㎡ (약 20평)',
-                        '84㎡ (약 25평)',
-                        '99㎡ (약 30평)',
-                        '115㎡ 이상 (약 35평 이상)',
-                      ],
-                      onChanged: (value) => setState(() => _area = value!),
-                    ),
+                    // 평균 실내 습도
+                    _buildLabel('💧 평균 실내 습도'),
+                    const SizedBox(height: 8),
+                    _buildHumiditySlider(),
+                    const SizedBox(height: 20),
 
-                    const SizedBox(height: 24),
+                    // 집 방향
+                    _buildLabel('🧭 집 방향'),
+                    const SizedBox(height: 8),
+                    _buildDirectionSelector(),
 
-                    _buildSectionTitle('추가 정보'),
-                    _buildSwitchItem(
-                      title: '지하/반지하 거주',
-                      subtitle: '습기에 취약할 수 있어요',
-                      value: _hasBasement,
-                      onChanged: (value) =>
-                          setState(() => _hasBasement = value),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchItem(
-                      title: '북향 방 보유',
-                      subtitle: '일조량이 적어 곰팡이 위험이 높아요',
-                      value: _hasNorthFacing,
-                      onChanged: (value) =>
-                          setState(() => _hasNorthFacing = value),
-                    ),
-
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
 
                     // 저장 버튼
                     SizedBox(
@@ -94,8 +85,10 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
                         onPressed: _saveInfo,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.mintPrimary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(24),
                           ),
                         ),
                         child: const Text(
@@ -103,11 +96,12 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -132,14 +126,14 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Row(
+          const Row(
             children: [
-              const Text(
+              Text(
                 '🏠',
                 style: TextStyle(fontSize: 24),
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '집 정보 수정',
                 style: TextStyle(
                   fontSize: 22,
@@ -154,104 +148,358 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppTheme.gray700,
+      ),
+    );
+  }
+
+  // 주소 입력 (웹/네이티브 분기)
+  Widget _buildAddressInput() {
+    if (kIsWeb) {
+      return _buildWebAddressInput();
+    } else {
+      return _buildNativeAddressInput();
+    }
+  }
+
+  Widget _buildWebAddressInput() {
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.gray200, width: 2),
+      ),
+      child: TextField(
+        controller: _addressController,
+        onChanged: (value) {
+          setState(() {
+            _selectedLocation = value;
+          });
+        },
+        decoration: InputDecoration(
+          hintText: '주소를 입력해주세요 (예: 서울시 강남구)',
+          hintStyle: TextStyle(
+            fontSize: 15,
+            color: AppTheme.gray400,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          suffixIcon: Icon(
+            Icons.edit_location_alt_outlined,
+            color: AppTheme.gray400,
+            size: 20,
+          ),
+        ),
         style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.gray700,
+          fontSize: 15,
+          color: AppTheme.gray800,
         ),
       ),
     );
   }
 
-  Widget _buildDropdownField({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.gray100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.gray200),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          icon:
-              Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.gray500),
-          items: items.map((item) {
-            return DropdownMenuItem<String>(
-              value: item,
+  Widget _buildNativeAddressInput() {
+    final bool hasAddress = _selectedLocation.isNotEmpty;
+
+    return GestureDetector(
+      onTap: _openAddressSearch,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: hasAddress ? AppTheme.mintLight : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: hasAddress ? AppTheme.mintPrimary : AppTheme.gray200,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
               child: Text(
-                item,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.gray800,
+                hasAddress ? _selectedLocation : '주소를 검색해주세요',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: hasAddress ? AppTheme.gray800 : AppTheme.gray400,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.search,
+              color: hasAddress ? AppTheme.mintPrimary : AppTheme.gray400,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAddressSearch() async {
+    final result = await address_search.openAddressSearch(context);
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _selectedLocation = result;
+      });
+    }
+  }
+
+  // 반지하 여부 선택
+  Widget _buildBasementSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _isBasement = false;
+              });
+            },
+            child: Container(
+              height: 52,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: !_isBasement ? AppTheme.mintLight : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: !_isBasement ? AppTheme.mintPrimary : AppTheme.gray200,
+                  width: 2,
                 ),
               ),
-            );
-          }).toList(),
-          onChanged: onChanged,
+              child: Center(
+                child: Text(
+                  '일반 주거',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: !_isBasement ? AppTheme.mintDark : AppTheme.gray500,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _isBasement = true;
+              });
+            },
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: _isBasement ? AppTheme.pinkLight : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _isBasement ? AppTheme.pinkPrimary : AppTheme.gray200,
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '반지하',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color:
+                        _isBasement ? AppTheme.pinkPrimary : AppTheme.gray500,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildSwitchItem({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
+  // 온도 슬라이더
+  Widget _buildTemperatureSlider() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.gray100,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.gray200, width: 2),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.gray800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.gray400,
-                  ),
-                ),
-              ],
+          Text(
+            '${_selectedTemperature.toInt()}°C',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mintPrimary,
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
+          Slider(
+            value: _selectedTemperature,
+            min: 15,
+            max: 30,
+            divisions: 15,
             activeColor: AppTheme.mintPrimary,
+            inactiveColor: AppTheme.gray200,
+            onChanged: (value) {
+              setState(() {
+                _selectedTemperature = value;
+              });
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('15°C',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+              Text('30°C',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+            ],
           ),
         ],
       ),
     );
   }
 
+  // 습도 슬라이더
+  Widget _buildHumiditySlider() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.gray200, width: 2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${_selectedHumidity.toInt()}%',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mintPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getHumidityColor().withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _getHumidityStatus(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _getHumidityColor(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: _selectedHumidity,
+            min: 20,
+            max: 80,
+            divisions: 60,
+            activeColor: AppTheme.mintPrimary,
+            inactiveColor: AppTheme.gray200,
+            onChanged: (value) {
+              setState(() {
+                _selectedHumidity = value;
+              });
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('20%',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+              Text('80%',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHumidityStatus() {
+    if (_selectedHumidity < 40) return '건조';
+    if (_selectedHumidity < 60) return '적정';
+    return '습함';
+  }
+
+  Color _getHumidityColor() {
+    if (_selectedHumidity < 40) return Colors.orange;
+    if (_selectedHumidity < 60) return AppTheme.mintPrimary;
+    return AppTheme.pinkPrimary;
+  }
+
+  // 집 방향 선택
+  Widget _buildDirectionSelector() {
+    return Row(
+      children: List.generate(
+        AppConstants.houseDirections.length,
+        (index) => Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedDirectionIndex = index;
+              });
+            },
+            child: Container(
+              height: 52,
+              margin: EdgeInsets.only(
+                right: index < AppConstants.houseDirections.length - 1 ? 12 : 0,
+              ),
+              decoration: BoxDecoration(
+                color: _selectedDirectionIndex == index
+                    ? AppTheme.mintLight
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _selectedDirectionIndex == index
+                      ? AppTheme.mintPrimary
+                      : AppTheme.gray200,
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  AppConstants.houseDirections[index],
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _selectedDirectionIndex == index
+                        ? AppTheme.mintDark
+                        : AppTheme.gray500,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _saveInfo() {
+    // TODO: 추후 API 연결
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('집 정보가 저장되었습니다'),

@@ -49,7 +49,8 @@ class AuthService {
       // JWT 토큰 저장
       await _apiService.saveToken(authResponse.accessToken);
 
-      debugPrint('[AuthService] 로그인 성공 - userId: ${authResponse.userId}, isNewUser: ${authResponse.isNewUser}');
+      debugPrint(
+          '[AuthService] 로그인 성공 - userId: ${authResponse.userId}, isNewUser: ${authResponse.isNewUser}');
 
       return authResponse;
     } on DioException catch (e) {
@@ -78,5 +79,25 @@ class AuthService {
       return Exception(message);
     }
     return Exception('서버 연결에 실패했습니다.');
+  }
+
+  /// [개발 전용] 카카오 로그인 없이 테스트 계정으로 로그인
+  /// 에뮬레이터에서 카카오 로그인이 안 될 때 사용
+  Future<AuthResponse> devLogin() async {
+    try {
+      final response = await _apiService.dio.post('/auth/dev-login');
+
+      final authResponse = AuthResponse.fromJson(response.data);
+
+      // JWT 토큰 저장
+      await _apiService.saveToken(authResponse.accessToken);
+
+      debugPrint('[AuthService] 개발용 로그인 성공 - userId: ${authResponse.userId}');
+
+      return authResponse;
+    } on DioException catch (e) {
+      debugPrint('[AuthService] 개발용 로그인 실패: ${e.response?.data}');
+      throw _handleError(e);
+    }
   }
 }

@@ -111,30 +111,12 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 캐릭터
-                      Container(
+                      // 캐릭터 로고
+                      Image.asset(
+                        'assets/images/character/pangpangpang_logo_small.png',
                         width: 150,
                         height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.mintLight2,
-                              AppTheme.pinkLight2,
-                            ],
-                          ),
-                          border: Border.all(
-                            color: AppTheme.mintPrimary.withValues(alpha: 0.5),
-                            width: 4,
-                            strokeAlign: BorderSide.strokeAlignOutside,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '🧚',
-                            style: TextStyle(fontSize: 64),
-                          ),
-                        ),
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 24),
                       // 로고

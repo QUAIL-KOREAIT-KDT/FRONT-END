@@ -18,7 +18,7 @@ class AuthProvider extends ChangeNotifier {
   // 개발 모드 설정 - 에뮬레이터에서 카카오 로그인 우회
   // 실제 기기 테스트 시 false로 변경하세요
   // ============================================================
-  static const bool _devBypassKakaoLogin = false;
+  static const bool _devBypassKakaoLogin = true;
   // ============================================================
 
   UserModel? get user => _user;
@@ -32,24 +32,35 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // 개발 모드: 카카오 로그인 우회
+    // 개발 모드: 카카오 로그인 우회 → 백엔드 개발용 로그인 API 호출
     if (_devBypassKakaoLogin) {
-      debugPrint('[개발 모드] 카카오 로그인 우회 - 더미 사용자로 로그인');
-      await Future.delayed(const Duration(milliseconds: 500));
+      debugPrint('[개발 모드] 카카오 로그인 우회 - 백엔드 개발용 로그인 API 호출');
 
-      _user = UserModel(
-        id: 'dev_user_001',
-        email: 'dev@test.com',
-        nickname: '개발자',
-        profileImage: null,
-        isOnboardingCompleted: false,
-      );
+      try {
+        // 백엔드 개발용 로그인 API 호출
+        final authResponse = await _authService.devLogin();
 
-      _isLoggedIn = true;
-      _isNewUser = true;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+        _user = UserModel(
+          id: authResponse.userId.toString(),
+          nickname: authResponse.nickname ?? '테스트유저',
+          isOnboardingCompleted: !authResponse.isNewUser,
+        );
+
+        _isLoggedIn = true;
+        _isNewUser = authResponse.isNewUser;
+
+        debugPrint(
+            '[개발 모드] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');
+
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } catch (e) {
+        debugPrint('[개발 모드] 백엔드 로그인 실패: $e');
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     }
 
     try {
@@ -107,7 +118,8 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = true;
       _isNewUser = authResponse.isNewUser;
 
-      debugPrint('[AuthProvider] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');
+      debugPrint(
+          '[AuthProvider] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');
 
       _isLoading = false;
       notifyListeners();
@@ -124,7 +136,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _saveKakaoToken(OAuthToken token) async {
     await _storage.write(key: 'kakao_access_token', value: token.accessToken);
     if (token.refreshToken != null) {
-      await _storage.write(key: 'kakao_refresh_token', value: token.refreshToken);
+      await _storage.write(
+          key: 'kakao_refresh_token', value: token.refreshToken);
     }
   }
 

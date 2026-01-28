@@ -1,53 +1,21 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../config/theme.dart';
-import '../widgets/menu/hamburger_menu.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onMenuTap;
+
+  const HomeScreen({super.key, this.onMenuTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+class _HomeScreenState extends State<HomeScreen> {
 
   // 더미 데이터
-  final int _riskPercentage = 70;
+  final int _riskPercentage = 20;
   final String _location = '서울특별시 강남구';
-
-  // 애니메이션 컨트롤러
-  AnimationController? _animationController;
-  Animation<double>? _swingAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _initAnimation();
-  }
-
-  void _initAnimation() {
-    _animationController?.dispose();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _swingAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(
-        parent: _animationController!,
-        curve: Curves.easeInOut,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController?.dispose();
-    super.dispose();
-  }
 
   // 위험도에 따른 이미지 반환
   String _getRiskImage() {
@@ -73,42 +41,48 @@ class _HomeScreenState extends State<HomeScreen>
 
   // 캐릭터 이미지 위젯
   Widget _buildCharacterImage() {
-    return Image.asset(
-      _getRiskImage(),
-      width: 160,
-      height: 160,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        // 이미지 로드 실패 시 기본 이모지 표시
-        return Container(
-          width: 160,
-          height: 160,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [AppTheme.mintLight2, AppTheme.pinkLight2],
-            ),
+    return ClipRect(
+      child: SizedBox(
+        width: 250, // ← 이미지 영역 가로 크기 조절
+        height: 250, // ← 이미지 영역 세로 크기 조절
+        child: FittedBox(
+          fit: BoxFit.cover, // ← 이미지 채우기 방식 (cover: 꽉 채움, contain: 비율 유지)
+          child: Image.asset(
+            _getRiskImage(),
+            width: 200, // ← 원본 이미지 가로 크기 조절
+            height: 200, // ← 원본 이미지 세로 크기 조절
+            errorBuilder: (context, error, stackTrace) {
+              // 이미지 로드 실패 시 기본 이모지 표시
+              return Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppTheme.mintLight2, AppTheme.pinkLight2],
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _riskPercentage <= 30
+                        ? '😊'
+                        : _riskPercentage <= 60
+                            ? '😐'
+                            : '😰',
+                    style: const TextStyle(fontSize: 60),
+                  ),
+                ),
+              );
+            },
           ),
-          child: Center(
-            child: Text(
-              _riskPercentage <= 30
-                  ? '😊'
-                  : _riskPercentage <= 60
-                      ? '😐'
-                      : '😰',
-              style: const TextStyle(fontSize: 60),
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: const HamburgerMenu(),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -154,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           // 햄버거 메뉴 버튼
           GestureDetector(
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            onTap: () => widget.onMenuTap?.call(),
             child: Container(
               width: 44,
               height: 44,
@@ -302,19 +276,8 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 애니메이션 캐릭터 이미지
-                  _swingAnimation != null
-                      ? AnimatedBuilder(
-                          animation: _swingAnimation!,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(_swingAnimation!.value, 0),
-                              child: child,
-                            );
-                          },
-                          child: _buildCharacterImage(),
-                        )
-                      : _buildCharacterImage(),
+                  // 캐릭터 이미지
+                  _buildCharacterImage(),
 
                   const SizedBox(height: 16),
 
@@ -636,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildWeatherItem('🌡️', '-2°', '기온'),
+              _buildWeatherItem('🌡️', '-2°C', '기온'),
               _buildWeatherItem('💧', '45%', '습도'),
               _buildWeatherItem('☀️', '맑음', '날씨'),
             ],

@@ -2,7 +2,8 @@
     <application
         android:label="팡팡팡"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         
         <!-- 메인 액티비티 -->
         <activity

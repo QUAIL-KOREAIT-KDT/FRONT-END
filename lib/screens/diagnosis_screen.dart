@@ -98,23 +98,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.gray100,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.chevron_left,
-                color: AppTheme.gray700,
-                size: 28,
-              ),
-            ),
-          ),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           '🔬 곰팡이 진단',
           style: TextStyle(

@@ -152,3 +152,6 @@ android/local.properties
 
 # claude AI 관련 민감 정보
 .claude
+
+# 프로젝트 관련 사용 설명
+instruction

@@ -35,6 +35,10 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onTabTapped(int index) {
+    // 드로어가 열려있으면 닫기
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
     setState(() {
       _currentIndex = index;
     });
@@ -75,22 +79,7 @@ class HomeScreenContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _HomeContent();
-  }
-}
-
-class _HomeContent extends StatefulWidget {
-  const _HomeContent();
-
-  @override
-  State<_HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<_HomeContent> {
-  @override
-  Widget build(BuildContext context) {
-    // HomeScreen의 내용을 그대로 가져옴 - 추후 리팩토링 가능
-    return const HomeScreen();
+    return HomeScreen(onMenuTap: onMenuTap);
   }
 }
 

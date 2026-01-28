@@ -1,6 +1,29 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+
 class AppConstants {
-  // API URLs
-  static const String baseUrl = 'http://localhost:8000/api';
+  // API URLs - 플랫폼별 자동 설정
+  static String get baseUrl {
+    if (kIsWeb) {
+      // 웹: localhost 사용
+      return 'http://localhost:8000/api';
+    } else {
+      try {
+        if (Platform.isAndroid) {
+          // Android 에뮬레이터: 10.0.2.2는 호스트 PC의 localhost를 가리킴
+          // 실제 기기에서는 PC의 IP 주소 사용
+          // return 'http://10.0.2.2:8000/api'; // 에뮬레이터용
+          return 'http://192.168.45.178:8000/api'; // 실제 핸드폰용 (같은 와이파이 희원집 192.168.45.178, 학원 192.168.162.42)
+        } else if (Platform.isIOS) {
+          // iOS 시뮬레이터: localhost 사용 가능
+          return 'http://localhost:8000/api';
+        }
+      } catch (e) {
+        // Platform 접근 실패 시 기본값
+      }
+      return 'http://localhost:8000/api';
+    }
+  }
 
   // 카카오 로그인 키
   static const String kakaoNativeAppKey = '14cd88ec2188fe6269f64fca08013069';
