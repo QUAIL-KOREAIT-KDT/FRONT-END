@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'api_service.dart';
+import '../models/mold_category.dart';
 
 /// 곰팡이 도감 응답 모델
 class DictionaryResponse {
@@ -38,6 +39,114 @@ class DictionaryResponse {
       solution: json['solution'] ?? '',
       preventive: json['preventive'] ?? '',
     );
+  }
+
+  /// name 필드에서 한글명 추출
+  /// "스타키보트리스 (Stachybotrys chartarum)" → "스타키보트리스"
+  String get koreanName {
+    final idx = name.indexOf('(');
+    if (idx > 0) return name.substring(0, idx).trim();
+    return name.trim();
+  }
+
+  /// name 필드에서 학명 추출
+  /// "스타키보트리스 (Stachybotrys chartarum)" → "Stachybotrys chartarum"
+  String get scientificName {
+    final match = RegExp(r'\((.+)\)').firstMatch(name);
+    if (match != null) return match.group(1)!.trim();
+    return name.trim();
+  }
+
+  /// feature 필드를 파싱하여 Map으로 반환
+  /// "색상: 짙은 검은색\t외형: 젖으면 끈적...\t서식환경: ...\t유해정보: ..."
+  Map<String, String> get _parsedFeatures {
+    final map = <String, String>{};
+    final parts = feature.split('\t');
+    for (final part in parts) {
+      final trimmed = part.trim();
+      final colonIdx = trimmed.indexOf(':');
+      if (colonIdx > 0) {
+        final key = trimmed.substring(0, colonIdx).trim();
+        final value = trimmed.substring(colonIdx + 1).trim();
+        map[key] = value;
+      }
+    }
+    return map;
+  }
+
+  String get colorInfo => _parsedFeatures['색상'] ?? '';
+  String get appearance => _parsedFeatures['외형'] ?? '';
+  String get environment => _parsedFeatures['서식환경'] ?? '';
+  String get harmInfo => _parsedFeatures['유해정보'] ?? '';
+
+  /// DictionaryResponse → MoldSubType 변환
+  MoldSubType toMoldSubType() {
+    final features = _parsedFeatures;
+    final colorStr = features['색상'] ?? '';
+    final appearanceStr = features['외형'] ?? '';
+    final envStr = features['서식환경'] ?? '';
+    final harmStr = features['유해정보'] ?? '';
+
+    // 건강 영향: 쉼표로 분리
+    final healthRisks = harmStr.isNotEmpty
+        ? harmStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
+    // 발생 장소: 쉼표로 분리
+    final locations = location.isNotEmpty
+        ? location.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
+    // 제거 방법: \t로 분리
+    final removals = solution.isNotEmpty
+        ? solution.split('\t').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
+    // 예방법: \t로 분리
+    final preventions = preventive.isNotEmpty
+        ? preventive.split('\t').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
+    // 전체 설명 조합
+    final descParts = <String>[];
+    if (envStr.isNotEmpty) descParts.add('서식환경: $envStr');
+    if (colorStr.isNotEmpty) descParts.add('색상: $colorStr');
+    if (appearanceStr.isNotEmpty) descParts.add('외형: $appearanceStr');
+    if (harmStr.isNotEmpty) descParts.add('유해정보: $harmStr');
+    final fullDesc = descParts.join('\n');
+
+    return MoldSubType(
+      id: 'api_$id',
+      name: koreanName,
+      scientificName: scientificName,
+      shortDescription: envStr.isNotEmpty ? envStr : (appearanceStr.isNotEmpty ? appearanceStr : feature),
+      fullDescription: fullDesc,
+      color: colorStr,
+      characteristics: appearanceStr,
+      commonLocations: locations,
+      healthRisks: healthRisks,
+      removalMethods: removals,
+      preventions: preventions,
+      gradientColors: _labelGradientColors(label),
+    );
+  }
+
+  /// label별 그라데이션 색상
+  static List<Color> _labelGradientColors(String label) {
+    switch (label) {
+      case 'G1':
+        return [const Color(0xFF2D3436), const Color(0xFF636E72)];
+      case 'G2':
+        return [const Color(0xFF00B894), const Color(0xFF55EFC4)];
+      case 'G3':
+        return [const Color(0xFFDFE6E9), const Color(0xFFFFFFFF)];
+      case 'G4':
+        return [const Color(0xFFE17055), const Color(0xFFFAB1A0)];
+      case 'G5':
+        return [const Color(0xFFB2BEC3), const Color(0xFFDFE6E9)];
+      default:
+        return [const Color(0xFF636E72), const Color(0xFFB2BEC3)];
+    }
   }
 
   /// 더미 데이터 목록

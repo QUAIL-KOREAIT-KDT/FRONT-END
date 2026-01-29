@@ -168,6 +168,25 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  // 닉네임 업데이트 (API + 로컬 상태 갱신)
+  Future<bool> updateNickname(String newNickname) async {
+    try {
+      final updateData = UserProfilePartialUpdate(nickname: newNickname);
+      final success = await _userService.updateProfilePartial(updateData);
+
+      if (success && _user != null) {
+        _user = _user!.copyWith(nickname: newNickname);
+        debugPrint('[UserProvider] 닉네임 업데이트 완료: $newNickname');
+        notifyListeners();
+      }
+
+      return success;
+    } catch (e) {
+      debugPrint('[UserProvider] 닉네임 업데이트 실패: $e');
+      return false;
+    }
+  }
+
   // 사용자 정보 초기화
   void clearUser() {
     _user = null;

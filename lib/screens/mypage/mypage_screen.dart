@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../services/user_service.dart';
+import '../../providers/user_provider.dart';
 
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
@@ -13,6 +16,15 @@ class _MypageScreenState extends State<MypageScreen> {
   // 필터 선택
   String _selectedFilter = '전체';
   final List<String> _filters = ['전체', '창문', '벽지', '주방', '욕실'];
+
+  @override
+  void initState() {
+    super.initState();
+    // 마이페이지 진입 시 사용자 정보 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserProvider>().loadUser();
+    });
+  }
 
   // 더미 데이터 - 곰팡이 분석 기록
   final List<Map<String, dynamic>> _analysisRecords = [
@@ -96,6 +108,9 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   Widget _buildProfileCard() {
+    final userProvider = context.watch<UserProvider>();
+    final nickname = userProvider.user?.nickname ?? '회원님';
+
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
@@ -137,9 +152,9 @@ class _MypageScreenState extends State<MypageScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '회원님',
-                  style: TextStyle(
+                Text(
+                  nickname,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.gray800,
@@ -489,7 +504,9 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   void _showNicknameEditModal() {
-    final controller = TextEditingController(text: '회원님');
+    final userProvider = context.read<UserProvider>();
+    final currentNickname = userProvider.user?.nickname ?? '회원님';
+    final controller = TextEditingController(text: currentNickname);
 
     showDialog(
       context: context,
@@ -602,19 +619,44 @@ class _MypageScreenState extends State<MypageScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: 닉네임 저장 로직
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('닉네임이 변경되었습니다'),
-                            backgroundColor: AppTheme.mintPrimary,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                      onPressed: () async {
+                        final newNickname = controller.text.trim();
+                        if (newNickname.isEmpty ||
+                            newNickname.length < 2 ||
+                            newNickname.length > 10) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('닉네임은 2~10자로 입력해주세요'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                          return;
+                        }
+
+                        // UserProvider를 통해 닉네임 업데이트 (API + 상태 갱신)
+                        final userProvider = context.read<UserProvider>();
+                        final success =
+                            await userProvider.updateNickname(newNickname);
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  success ? '닉네임이 변경되었습니다' : '닉네임 변경에 실패했습니다'),
+                              backgroundColor:
+                                  success ? AppTheme.mintPrimary : Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.mintPrimary,

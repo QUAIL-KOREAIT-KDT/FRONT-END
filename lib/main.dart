@@ -11,6 +11,7 @@ import 'providers/user_provider.dart';
 import 'providers/mold_risk_provider.dart';
 import 'providers/weather_provider.dart';
 import 'providers/iot_provider.dart';
+import 'providers/dictionary_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MoldRiskProvider()),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(create: (_) => IotProvider()),
+        ChangeNotifierProvider(create: (_) => DictionaryProvider()),
       ],
       child: MaterialApp(
         title: '팡팡팡',

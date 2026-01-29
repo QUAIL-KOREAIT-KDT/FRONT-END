@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
+import '../../services/user_service.dart';
 // 조건부 import: 웹에서는 stub, 네이티브에서는 kpostal 사용
 import '../address_search_stub.dart'
     if (dart.library.io) '../address_search_native.dart' as address_search;
@@ -15,11 +16,13 @@ class HomeInfoScreen extends StatefulWidget {
 
 class _HomeInfoScreenState extends State<HomeInfoScreen> {
   final TextEditingController _addressController = TextEditingController();
+  final UserService _userService = UserService();
   String _selectedLocation = '서울특별시 강남구'; // 더미 데이터
   double _selectedTemperature = 22.0;
   double _selectedHumidity = 50.0;
   int _selectedDirectionIndex = 0;
   bool _isBasement = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -498,16 +501,86 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
     );
   }
 
-  void _saveInfo() {
-    // TODO: 추후 API 연결
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('집 정보가 저장되었습니다'),
-        backgroundColor: AppTheme.mintPrimary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-    Navigator.pop(context);
+  /// 방향 인덱스를 백엔드 API 값으로 변환
+  String _directionToApiValue(int index) {
+    // houseDirections: ['북향', '남향', '기타']
+    // API: 'N' (북), 'S' (남), 'O' (기타)
+    switch (index) {
+      case 0:
+        return 'N'; // 북향
+      case 1:
+        return 'S'; // 남향
+      default:
+        return 'O'; // 기타
+    }
+  }
+
+  /// 반지하 여부를 백엔드 API 값으로 변환
+  String _basementToApiValue(bool isBasement) {
+    return isBasement ? 'semi-basement' : 'others';
+  }
+
+  Future<void> _saveInfo() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final updateData = UserProfilePartialUpdate(
+        address: _selectedLocation,
+        underground: _basementToApiValue(_isBasement),
+        windowDirection: _directionToApiValue(_selectedDirectionIndex),
+        indoorTemp: _selectedTemperature,
+        indoorHumidity: _selectedHumidity,
+      );
+
+      final success = await _userService.updateProfilePartial(updateData);
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('집 정보가 저장되었습니다'),
+              backgroundColor: AppTheme.mintPrimary,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('저장에 실패했습니다. 다시 시도해주세요.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[HomeInfoScreen] 저장 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('오류가 발생했습니다. 다시 시도해주세요.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }

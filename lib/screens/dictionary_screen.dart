@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/mold_category.dart';
+import '../providers/dictionary_provider.dart';
 import 'dictionary_subtype_screen.dart';
+import 'dictionary_subtype_detail_screen.dart';
 
 /// 곰팡이 사전 메인 화면
 /// 색상별 곰팡이 카테고리를 보여주고, 클릭하면 세부 종류 목록으로 이동
@@ -14,14 +17,15 @@ class DictionaryScreen extends StatefulWidget {
 
 class _DictionaryScreenState extends State<DictionaryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<MoldCategory> _categoryList = [];
-  List<MoldCategory> _filteredList = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _categoryList = MoldCategory.getCategories();
-    _filteredList = _categoryList;
+    // Provider를 통해 데이터 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DictionaryProvider>().loadDictionary();
+    });
   }
 
   @override
@@ -30,20 +34,15 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     super.dispose();
   }
 
-  void _filterCategories(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredList = _categoryList;
-      } else {
-        _filteredList = _categoryList
-            .where((category) =>
-                category.name.toLowerCase().contains(query.toLowerCase()) ||
-                category.description
-                    .toLowerCase()
-                    .contains(query.toLowerCase()))
-            .toList();
-      }
-    });
+  List<MoldCategory> _filterCategories(List<MoldCategory> categories) {
+    if (_searchQuery.isEmpty) return categories;
+    return categories
+        .where((category) =>
+            category.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            category.description
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()))
+        .toList();
   }
 
   @override
@@ -61,7 +60,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
 
             // 카테고리 그리드
             Expanded(
-              child: _buildCategoryGrid(),
+              child: _buildBody(),
             ),
           ],
         ),
@@ -108,7 +107,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
         ),
         child: TextField(
           controller: _searchController,
-          onChanged: _filterCategories,
+          onChanged: (query) {
+            setState(() {
+              _searchQuery = query;
+            });
+          },
           decoration: InputDecoration(
             hintText: '곰팡이 종류 검색',
             hintStyle: TextStyle(
@@ -131,7 +134,45 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     );
   }
 
-  Widget _buildCategoryGrid() {
+  Widget _buildBody() {
+    return Consumer<DictionaryProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: AppTheme.mintPrimary,
+            ),
+          );
+        }
+
+        if (provider.categories.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: AppTheme.gray400),
+                const SizedBox(height: 16),
+                Text(
+                  '도감 데이터를 불러올 수 없습니다',
+                  style: TextStyle(fontSize: 16, color: AppTheme.gray500),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => provider.refresh(),
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final filteredList = _filterCategories(provider.categories);
+        return _buildCategoryGrid(filteredList);
+      },
+    );
+  }
+
+  Widget _buildCategoryGrid(List<MoldCategory> filteredList) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
@@ -139,11 +180,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 0.85,
+          childAspectRatio: 0.78,
         ),
-        itemCount: _filteredList.length,
+        itemCount: filteredList.length,
         itemBuilder: (context, index) {
-          return _buildCategoryCard(_filteredList[index]);
+          return _buildCategoryCard(filteredList[index]);
         },
       ),
     );
@@ -152,12 +193,24 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   Widget _buildCategoryCard(MoldCategory category) {
     return GestureDetector(
       onTap: () {
-        // 세부 종류가 있으면 SubtypeScreen으로 이동
-        if (category.subTypes.isNotEmpty) {
+        if (category.subTypes.length == 1) {
+          // 세부 종류가 1개면 바로 상세 화면으로 이동
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DictionarySubtypeScreen(category: category),
+              builder: (context) => DictionarySubtypeDetailScreen(
+                subType: category.subTypes.first,
+                categoryName: category.name,
+              ),
+            ),
+          );
+        } else if (category.subTypes.isNotEmpty) {
+          // 세부 종류가 여러 개면 SubtypeScreen으로 이동
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  DictionarySubtypeScreen(category: category),
             ),
           );
         } else {
@@ -239,38 +292,38 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                 ),
               ),
               // 텍스트 영역
-              Expanded(
-                flex: 2,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        category.name,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.gray800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                color: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      category.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray800,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        category.description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.gray500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      category.description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.gray500,
                       ),
-                    ],
-                  ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],

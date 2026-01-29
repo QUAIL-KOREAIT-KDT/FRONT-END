@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../config/theme.dart';
+import '../models/notification.dart';
+import '../widgets/notification_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -16,6 +18,52 @@ class _HomeScreenState extends State<HomeScreen> {
   // 더미 데이터
   final int _riskPercentage = 20;
   final String _location = '서울특별시 강남구';
+
+  // 더미 알림 데이터
+  // TODO: 추후 백엔드 API 연동 시 NotificationService를 통해 데이터를 받아올 예정
+  // GET /api/notifications -> List<NotificationItem>
+  final List<NotificationItem> _notifications = [
+    NotificationItem(
+      id: '1',
+      type: NotificationType.riskAlert,
+      title: '곰팡이 위험도 상승',
+      message: '현재 습도가 높아 곰팡이 발생 위험이 증가했습니다. 환기를 권장합니다.',
+      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+      isRead: false,
+    ),
+    NotificationItem(
+      id: '2',
+      type: NotificationType.tip,
+      title: '오늘의 환기 팁',
+      message: '오전 10시~12시 사이가 환기하기 가장 좋은 시간대입니다.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      isRead: false,
+    ),
+    NotificationItem(
+      id: '3',
+      type: NotificationType.diagnosis,
+      title: '진단 결과 확인',
+      message: '어제 촬영한 이미지의 곰팡이 진단 결과가 도착했습니다.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      isRead: true,
+    ),
+    NotificationItem(
+      id: '4',
+      type: NotificationType.update,
+      title: '새로운 기능 추가',
+      message: '곰팡이 사전에 새로운 정보가 업데이트되었습니다. 지금 확인해보세요!',
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      isRead: true,
+    ),
+    NotificationItem(
+      id: '5',
+      type: NotificationType.riskAlert,
+      title: '위험 지역 알림',
+      message: '욕실 습도가 70%를 넘었습니다. 곰팡이 발생 주의가 필요합니다.',
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      isRead: true,
+    ),
+  ];
 
   // 위험도에 따른 이미지 반환
   String _getRiskImage() {
@@ -177,42 +225,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // 알림 버튼
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                const Center(
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    color: AppTheme.gray700,
-                    size: 24,
+          GestureDetector(
+            onTap: () => NotificationModal.show(context, _notifications),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.pinkPrimary,
-                      shape: BoxShape.circle,
+                ],
+              ),
+              child: Stack(
+                children: [
+                  const Center(
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      color: AppTheme.gray700,
+                      size: 24,
                     ),
                   ),
-                ),
-              ],
+                  // 읽지 않은 알림이 있을 때만 빨간 점 표시
+                  if (_notifications.any((n) => !n.isRead))
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.pinkPrimary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
