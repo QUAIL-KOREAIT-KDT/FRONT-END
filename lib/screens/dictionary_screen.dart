@@ -176,6 +176,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
+        padding: const EdgeInsets.only(bottom: 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 16,

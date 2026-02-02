@@ -12,6 +12,9 @@ import '../screens/mypage/mypage_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/home_info_screen.dart';
 import '../screens/settings/iot_settings_screen.dart';
+import '../screens/game/mold_game_screen.dart';
+import '../screens/game/mold_game_play_screen.dart';
+import '../screens/game/mold_game_result_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -28,6 +31,9 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String homeInfo = '/settings/home-info';
   static const String iotSettings = '/settings/iot';
+  static const String moldGame = '/game/mold';
+  static const String moldGamePlay = '/game/mold/play';
+  static const String moldGameResult = '/game/mold/result';
 
   static Map<String, WidgetBuilder> get routes {
     return {
@@ -45,6 +51,9 @@ class AppRoutes {
       settings: (context) => const SettingsScreen(),
       homeInfo: (context) => const HomeInfoScreen(),
       iotSettings: (context) => const IotSettingsScreen(),
+      moldGame: (context) => const MoldGameScreen(),
+      moldGamePlay: (context) => const MoldGamePlayScreen(),
+      moldGameResult: (context) => const MoldGameResultScreen(),
     };
   }
 }

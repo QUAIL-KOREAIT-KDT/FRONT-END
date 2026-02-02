@@ -257,46 +257,56 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   Widget _buildFilterTabs() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        children: _filters.map((filter) {
+        children: _filters.asMap().entries.map((entry) {
+          final index = entry.key;
+          final filter = entry.value;
           final isSelected = _selectedFilter == filter;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedFilter = filter),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.mintPrimary : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index < _filters.length - 1 ? 8 : 0,
+              ),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedFilter = filter),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
                   ),
-                ),
-                child: Row(
-                  children: [
-                    if (filter != '전체') ...[
-                      Text(
-                        _getFilterIcon(filter),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      filter,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: isSelected ? Colors.white : AppTheme.gray600,
-                      ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.mintPrimary : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (filter != '전체') ...[
+                        Text(
+                          _getFilterIcon(filter),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 2),
+                      ],
+                      Flexible(
+                        child: Text(
+                          filter,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected ? Colors.white : AppTheme.gray600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

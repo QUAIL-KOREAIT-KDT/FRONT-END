@@ -12,8 +12,16 @@ class DictionarySubtypeDetailScreen extends StatelessWidget {
     required this.categoryName,
   });
 
+  /// 배경색이 밝은지 판단하여 텍스트 색상 결정
+  bool _isLightBackground(Color color) {
+    final luminance = color.computeLuminance();
+    return luminance > 0.5;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLight = _isLightBackground(subType.gradientColors[0]);
+    final textColor = isLight ? AppTheme.gray700 : Colors.white;
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
@@ -57,15 +65,17 @@ class DictionarySubtypeDetailScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: isLight
+                              ? AppTheme.gray700.withOpacity(0.15)
+                              : Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           categoryName,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Colors.white),
+                              color: textColor),
                         ),
                       ),
                     ],

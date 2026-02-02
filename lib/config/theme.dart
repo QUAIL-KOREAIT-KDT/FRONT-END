@@ -16,6 +16,7 @@ class AppTheme {
   static const Color pinkMedium = Color(0xFFFFB3D1);
 
   // 그레이 색상
+  static const Color gray50 = Color(0xFFFAFBFC);
   static const Color gray100 = Color(0xFFF7F8FA);
   static const Color gray200 = Color(0xFFE8ECF1);
   static const Color gray300 = Color(0xFFC9D1DC);
@@ -44,11 +45,14 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  // 단색 배경 (민트 라이트)
+  static const Color backgroundColor = mintLight;
+
+  // 기존 그라데이션 (필요 시 사용)
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [mintLight, Colors.white, pinkLight],
+    colors: [mintLight, mintLight],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    stops: [0.0, 0.5, 1.0],
   );
 
   // 테마 데이터

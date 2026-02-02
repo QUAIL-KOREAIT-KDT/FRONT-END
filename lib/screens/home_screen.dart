@@ -300,7 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // 새로운 위험도 표시 섹션 (바 게이지 + 캐릭터)
   Widget _buildRiskDisplaySection() {
     final riskColor = AppTheme.getRiskColor(_riskPercentage);
-    final riskStatus = AppTheme.getRiskStatus(_riskPercentage);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -320,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             // 좌측: 수직 바 게이지
-            _buildVerticalBarGauge(riskColor, riskStatus),
+            _buildVerticalBarGauge(riskColor),
 
             const SizedBox(width: 24),
 
@@ -354,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 수직 바 게이지
-  Widget _buildVerticalBarGauge(Color riskColor, String riskStatus) {
+  Widget _buildVerticalBarGauge(Color riskColor) {
     return Column(
       children: [
         // 바 게이지
@@ -456,18 +455,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
         const SizedBox(height: 8),
 
-        // 상태 뱃지
+        // 퍼센트 표시
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: riskColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            riskStatus,
+            '$_riskPercentage%',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
               color: riskColor,
             ),
           ),

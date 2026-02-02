@@ -71,6 +71,16 @@ class _HamburgerMenuState extends State<HamburgerMenu>
                       badgeColors: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
                       badgeIcon: '🔥',
                     ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.videogame_asset_rounded,
+                      iconColor: const Color(0xFF4CAF50),
+                      label: '팡이 게임',
+                      route: AppRoutes.moldGame,
+                      badge: 'NEW',
+                      badgeColors: const [Color(0xFF4CAF50), Color(0xFF8BC34A)],
+                      badgeIcon: '🍄',
+                    ),
                     const Padding(
                       padding:
                           EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -296,65 +306,75 @@ class _HamburgerMenuState extends State<HamburgerMenu>
       child: Column(
         children: [
           // 도움말
-          InkWell(
-            onTap: () {
-              // TODO: 도움말 페이지로 이동
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Text(
-                    '?',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.pinkPrimary,
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                // TODO: 도움말 페이지로 이동
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: Row(
+                  children: [
+                    Text(
+                      '?',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.pinkPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '도움말',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.gray500,
+                    const SizedBox(width: 12),
+                    Text(
+                      '도움말',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.gray500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           // 로그아웃
-          InkWell(
-            onTap: () async {
-              final authProvider = context.read<AuthProvider>();
-              await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  AppRoutes.onboarding,
-                  (route) => false,
-                );
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.logout_rounded,
-                    size: 18,
-                    color: AppTheme.gray400,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '로그아웃',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.gray500,
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                final authProvider = context.read<AuthProvider>();
+                await authProvider.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    AppRoutes.onboarding,
+                    (route) => false,
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 18,
+                      color: AppTheme.gray400,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Text(
+                      '로그아웃',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
