@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/notification.dart';
+import '../providers/notification_provider.dart';
 
 class NotificationModal extends StatelessWidget {
   final List<NotificationItem> notifications;
@@ -47,29 +49,81 @@ class NotificationModal extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '알림',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.gray800,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      '알림',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray800,
+                      ),
+                    ),
+                    if (notifications.any((n) => !n.isRead)) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.pinkPrimary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${notifications.where((n) => !n.isRead).length}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppTheme.gray100,
-                      borderRadius: BorderRadius.circular(10),
+                Row(
+                  children: [
+                    // 모두 읽음 버튼
+                    if (notifications.any((n) => !n.isRead))
+                      GestureDetector(
+                        onTap: () {
+                          context.read<NotificationProvider>().markAllAsRead();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.mintLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '모두 읽음',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.mintPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    // 닫기 버튼
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppTheme.gray100,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppTheme.gray500,
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.close,
-                      size: 18,
-                      color: AppTheme.gray500,
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -91,8 +145,17 @@ class NotificationModal extends StatelessWidget {
                       color: AppTheme.gray100,
                     ),
                     itemBuilder: (context, index) {
+                      final notification = notifications[index];
                       return _NotificationTile(
-                        notification: notifications[index],
+                        notification: notification,
+                        onTap: () {
+                          // 읽음 처리
+                          if (!notification.isRead) {
+                            context
+                                .read<NotificationProvider>()
+                                .markAsRead(notification.id);
+                          }
+                        },
                       );
                     },
                   ),
@@ -145,11 +208,19 @@ class NotificationModal extends StatelessWidget {
 
 class _NotificationTile extends StatelessWidget {
   final NotificationItem notification;
+  final VoidCallback? onTap;
 
-  const _NotificationTile({required this.notification});
+  const _NotificationTile({
+    required this.notification,
+    this.onTap,
+  });
 
   Color get _typeColor {
     switch (notification.type) {
+      case NotificationType.daily:
+        return AppTheme.mintPrimary;
+      case NotificationType.notice:
+        return AppTheme.mintPrimary;
       case NotificationType.riskAlert:
         return AppTheme.danger;
       case NotificationType.update:
@@ -163,83 +234,88 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: notification.isRead ? Colors.white : AppTheme.mintLight.withValues(alpha: 0.3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 아이콘
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                notification.icon,
-                style: const TextStyle(fontSize: 20),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        color: notification.isRead
+            ? Colors.white
+            : AppTheme.mintLight.withValues(alpha: 0.3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 아이콘
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _typeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  notification.icon,
+                  style: const TextStyle(fontSize: 20),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(width: 14),
+            const SizedBox(width: 14),
 
-          // 내용
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: notification.isRead
-                              ? FontWeight.w500
-                              : FontWeight.w700,
-                          color: AppTheme.gray800,
+            // 내용
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: notification.isRead
+                                ? FontWeight.w500
+                                : FontWeight.w700,
+                            color: AppTheme.gray800,
+                          ),
                         ),
                       ),
+                      if (!notification.isRead)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.pinkPrimary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.message,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.gray500,
+                      height: 1.4,
                     ),
-                    if (!notification.isRead)
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.pinkPrimary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  notification.message,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.gray500,
-                    height: 1.4,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  notification.timeAgo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.gray400,
+                  const SizedBox(height: 6),
+                  Text(
+                    notification.timeAgo,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.gray400,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

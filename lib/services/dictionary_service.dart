@@ -89,22 +89,38 @@ class DictionaryResponse {
 
     // 건강 영향: 쉼표로 분리
     final healthRisks = harmStr.isNotEmpty
-        ? harmStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        ? harmStr
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
         : <String>[];
 
     // 발생 장소: 쉼표로 분리
     final locations = location.isNotEmpty
-        ? location.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        ? location
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
         : <String>[];
 
     // 제거 방법: \t로 분리
     final removals = solution.isNotEmpty
-        ? solution.split('\t').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        ? solution
+            .split('\t')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
         : <String>[];
 
     // 예방법: \t로 분리
     final preventions = preventive.isNotEmpty
-        ? preventive.split('\t').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        ? preventive
+            .split('\t')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
         : <String>[];
 
     // 전체 설명 조합
@@ -119,7 +135,9 @@ class DictionaryResponse {
       id: 'api_$id',
       name: koreanName,
       scientificName: scientificName,
-      shortDescription: envStr.isNotEmpty ? envStr : (appearanceStr.isNotEmpty ? appearanceStr : feature),
+      shortDescription: envStr.isNotEmpty
+          ? envStr
+          : (appearanceStr.isNotEmpty ? appearanceStr : feature),
       fullDescription: fullDesc,
       color: colorStr,
       characteristics: appearanceStr,
@@ -128,6 +146,8 @@ class DictionaryResponse {
       removalMethods: removals,
       preventions: preventions,
       gradientColors: _labelGradientColors(label),
+      imagePath: imagePath.isNotEmpty ? imagePath : null,
+      detailImagePath: detailImagePath.isNotEmpty ? detailImagePath : null,
     );
   }
 

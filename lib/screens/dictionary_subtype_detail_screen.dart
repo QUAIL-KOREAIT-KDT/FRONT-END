@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/mold_category.dart';
+import '../config/constants.dart';
 
 class DictionarySubtypeDetailScreen extends StatelessWidget {
   final MoldSubType subType;
@@ -11,6 +12,21 @@ class DictionarySubtypeDetailScreen extends StatelessWidget {
     required this.subType,
     required this.categoryName,
   });
+
+  /// 이미지 URL 생성 (S3 또는 백엔드 static)
+  String? _getImageUrl() {
+    if (subType.imagePath == null || subType.imagePath!.isEmpty) {
+      return null;
+    }
+    final path = subType.imagePath!;
+    // 이미 완전한 URL인 경우
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    // 백엔드 static 경로인 경우 baseUrl 사용
+    final baseUrl = AppConstants.baseUrl.replaceAll('/api', '');
+    return '$baseUrl$path';
+  }
 
   /// 배경색이 밝은지 판단하여 텍스트 색상 결정
   bool _isLightBackground(Color color) {
@@ -59,7 +75,40 @@ class DictionarySubtypeDetailScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 30),
-                      const Text('🦠', style: TextStyle(fontSize: 72)),
+                      // S3 이미지가 있으면 네트워크 이미지, 없으면 이모지
+                      _getImageUrl() != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                _getImageUrl()!,
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Text('🦠',
+                                      style: TextStyle(fontSize: 72));
+                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : const Text('🦠', style: TextStyle(fontSize: 72)),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(

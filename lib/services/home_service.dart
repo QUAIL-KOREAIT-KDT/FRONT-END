@@ -2,121 +2,129 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 
-/// 곰팡이 위험도 응답 모델
-class MoldRiskResponse {
-  final String date;
-  final int temp;
-  final int humid;
-  final String moldIndex;
+/// 날씨 상세 정보 모델
+class WeatherDetail {
+  final String time;
+  final double temp;
+  final double humid;
+  final int rainProb;
+  final String condition;
 
-  MoldRiskResponse({
-    required this.date,
+  WeatherDetail({
+    required this.time,
     required this.temp,
     required this.humid,
-    required this.moldIndex,
+    required this.rainProb,
+    required this.condition,
   });
 
-  factory MoldRiskResponse.fromJson(Map<String, dynamic> json) {
-    return MoldRiskResponse(
-      date: json['date'] ?? '',
-      temp: json['temp'] ?? 0,
-      humid: json['humid'] ?? 0,
-      moldIndex: json['mold_index'] ?? '알 수 없음',
-    );
-  }
-
-  /// 더미 데이터
-  static MoldRiskResponse dummy() {
-    return MoldRiskResponse(
-      date: '20260127 1200',
-      temp: 18,
-      humid: 65,
-      moldIndex: '양호',
+  factory WeatherDetail.fromJson(Map<String, dynamic> json) {
+    return WeatherDetail(
+      time: json['time'] ?? '',
+      temp: (json['temp'] ?? 0).toDouble(),
+      humid: (json['humid'] ?? 0).toDouble(),
+      rainProb: json['rain_prob'] ?? 0,
+      condition: json['condition'] ?? '',
     );
   }
 }
 
-/// 날씨 응답 모델
-class WeatherResponse {
+/// 환기 추천 시간 모델
+class VentilationTime {
   final String date;
-  final String region;
-  final String temp;
-  final String humid;
-  final String dewPoint;
-  final String pp;
-  final String moldIndex;
+  final String startTime;
+  final String endTime;
+  final String description;
 
-  WeatherResponse({
+  VentilationTime({
     required this.date,
-    required this.region,
-    required this.temp,
-    required this.humid,
-    required this.dewPoint,
-    required this.pp,
-    required this.moldIndex,
+    required this.startTime,
+    required this.endTime,
+    required this.description,
   });
 
-  factory WeatherResponse.fromJson(Map<String, dynamic> json) {
-    return WeatherResponse(
+  factory VentilationTime.fromJson(Map<String, dynamic> json) {
+    return VentilationTime(
       date: json['date'] ?? '',
-      region: json['region'] ?? '',
-      temp: json['temp']?.toString() ?? '0',
-      humid: json['humid']?.toString() ?? '0',
-      dewPoint: json['dew_point']?.toString() ?? '0',
-      pp: json['PP']?.toString() ?? '0',
-      moldIndex: json['mold_index']?.toString() ?? '0',
-    );
-  }
-
-  /// 더미 데이터
-  static WeatherResponse dummy() {
-    return WeatherResponse(
-      date: '20260127 1200',
-      region: '서울',
-      temp: '18',
-      humid: '65',
-      dewPoint: '10',
-      pp: '10',
-      moldIndex: '35',
+      startTime: json['start_time'] ?? '',
+      endTime: json['end_time'] ?? '',
+      description: json['description'] ?? '',
     );
   }
 }
 
-/// 환기 추천 응답 모델
-class RefreshResponse {
-  final String region;
-  final List<String> dateList;
+/// 위험도 정보 모델
+class RiskInfo {
+  final double score;
+  final String level;
+  final String message;
+  final Map<String, dynamic>? details;
 
-  RefreshResponse({
-    required this.region,
-    required this.dateList,
+  RiskInfo({
+    required this.score,
+    required this.level,
+    required this.message,
+    this.details,
   });
 
-  factory RefreshResponse.fromJson(Map<String, dynamic> json) {
-    return RefreshResponse(
-      region: json['region'] ?? '',
-      dateList: (json['date_list'] as List<dynamic>?)
-              ?.map((e) => e.toString())
+  factory RiskInfo.fromJson(Map<String, dynamic> json) {
+    return RiskInfo(
+      score: (json['score'] ?? 0).toDouble(),
+      level: json['level'] ?? 'safe',
+      message: json['message'] ?? '',
+      details: json['details'],
+    );
+  }
+
+  /// 위험도 퍼센트 (0~100)
+  int get percentage => score.clamp(0, 100).toInt();
+}
+
+/// 홈 화면 정보 응답 모델
+class HomeInfoResponse {
+  final String regionAddress;
+  final List<WeatherDetail> currentWeather;
+  final List<VentilationTime> ventilationTimes;
+  final RiskInfo? riskInfo;
+
+  HomeInfoResponse({
+    required this.regionAddress,
+    required this.currentWeather,
+    required this.ventilationTimes,
+    this.riskInfo,
+  });
+
+  factory HomeInfoResponse.fromJson(Map<String, dynamic> json) {
+    return HomeInfoResponse(
+      regionAddress: json['region_address'] ?? '',
+      currentWeather: (json['current_weather'] as List<dynamic>?)
+              ?.map((e) => WeatherDetail.fromJson(e))
               .toList() ??
           [],
+      ventilationTimes: (json['ventilation_times'] as List<dynamic>?)
+              ?.map((e) => VentilationTime.fromJson(e))
+              .toList() ??
+          [],
+      riskInfo: json['risk_info'] != null
+          ? RiskInfo.fromJson(json['risk_info'])
+          : null,
     );
   }
 
-  /// 더미 데이터
-  static RefreshResponse dummy() {
-    return RefreshResponse(
-      region: '서울',
-      dateList: ['20260127 1300', '20260127 1400', '20260127 1500'],
-    );
+  /// 현재 시간대의 날씨 정보
+  WeatherDetail? get currentHourWeather {
+    if (currentWeather.isEmpty) return null;
+    return currentWeather.first;
   }
 
   /// 환기 가능 여부
-  bool get canRefresh => dateList.isNotEmpty;
+  bool get canVentilate => ventilationTimes.isNotEmpty;
 
   /// 환기 추천 메시지
-  String get message {
-    if (canRefresh) {
-      return '환기 추천 시간: ${dateList.length}개 구간';
+  String get ventilationMessage {
+    if (canVentilate) {
+      final first = ventilationTimes.first;
+      return '${first.startTime} ~ ${first.endTime} 환기 추천';
     }
     return '오늘 환기는 곰팡이한테 주세요 🍄';
   }
@@ -126,42 +134,15 @@ class RefreshResponse {
 class HomeService {
   final ApiService _apiService = ApiService();
 
-  /// 당일 곰팡이 위험도 조회
-  Future<MoldRiskResponse> getMoldRisk() async {
+  /// 홈 화면 정보 조회 (통합 API)
+  Future<HomeInfoResponse> getHomeInfo() async {
     try {
-      final response = await _apiService.dio.get('/home/molddate');
-      debugPrint('[HomeService] 곰팡이 위험도 조회 성공');
-      return MoldRiskResponse.fromJson(response.data);
+      final response = await _apiService.dio.get('/home/info');
+      debugPrint('[HomeService] 홈 정보 조회 성공');
+      return HomeInfoResponse.fromJson(response.data);
     } on DioException catch (e) {
-      debugPrint('[HomeService] 곰팡이 위험도 조회 실패: ${e.response?.data}');
-      debugPrint('[HomeService] 더미 데이터 사용');
-      return MoldRiskResponse.dummy();
-    }
-  }
-
-  /// 오늘 날씨 조회
-  Future<WeatherResponse> getWeather() async {
-    try {
-      final response = await _apiService.dio.get('/home/weather');
-      debugPrint('[HomeService] 날씨 조회 성공');
-      return WeatherResponse.fromJson(response.data);
-    } on DioException catch (e) {
-      debugPrint('[HomeService] 날씨 조회 실패: ${e.response?.data}');
-      debugPrint('[HomeService] 더미 데이터 사용');
-      return WeatherResponse.dummy();
-    }
-  }
-
-  /// 환기 추천 시간 조회
-  Future<RefreshResponse> getRefreshInfo() async {
-    try {
-      final response = await _apiService.dio.get('/home/refresh');
-      debugPrint('[HomeService] 환기 정보 조회 성공');
-      return RefreshResponse.fromJson(response.data);
-    } on DioException catch (e) {
-      debugPrint('[HomeService] 환기 정보 조회 실패: ${e.response?.data}');
-      debugPrint('[HomeService] 더미 데이터 사용');
-      return RefreshResponse.dummy();
+      debugPrint('[HomeService] 홈 정보 조회 실패: ${e.response?.data}');
+      rethrow;
     }
   }
 }

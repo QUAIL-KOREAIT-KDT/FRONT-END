@@ -80,6 +80,11 @@ class DictionaryProvider extends ChangeNotifier {
 
     try {
       final responses = await _service.getDictionaryList();
+      debugPrint('[DictionaryProvider] API 성공: ${responses.length}개 항목');
+      if (responses.isNotEmpty) {
+        debugPrint(
+            '[DictionaryProvider] 첫번째 항목 imagePath: ${responses.first.imagePath}');
+      }
       _categories = _groupByLabel(responses);
       _isLoaded = true;
     } catch (e) {
@@ -114,9 +119,8 @@ class DictionaryProvider extends ChangeNotifier {
       final meta = _labelMetaMap[label];
       if (meta == null) continue;
 
-      final subTypes = grouped[label]!
-          .map((resp) => resp.toMoldSubType())
-          .toList();
+      final subTypes =
+          grouped[label]!.map((resp) => resp.toMoldSubType()).toList();
 
       categories.add(MoldCategory(
         id: meta.id,

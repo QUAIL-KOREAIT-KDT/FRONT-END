@@ -86,6 +86,8 @@ class MoldSubType {
   final List<String> removalMethods;
   final List<String> preventions;
   final List<Color> gradientColors;
+  final String? imagePath; // S3 이미지 경로
+  final String? detailImagePath; // S3 상세 이미지 경로
 
   MoldSubType({
     required this.id,
@@ -100,6 +102,8 @@ class MoldSubType {
     required this.removalMethods,
     required this.preventions,
     required this.gradientColors,
+    this.imagePath,
+    this.detailImagePath,
   });
 
   /// 검은 곰팡이 세부 종류 (4개)

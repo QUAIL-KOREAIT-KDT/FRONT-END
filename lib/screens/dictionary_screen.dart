@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../config/constants.dart';
 import '../models/mold_category.dart';
 import '../providers/dictionary_provider.dart';
 import 'dictionary_subtype_screen.dart';
@@ -191,7 +192,21 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     );
   }
 
+  /// 카테고리의 대표 이미지 URL 가져오기 (첫 번째 subType의 이미지)
+  String? _getCategoryImageUrl(MoldCategory category) {
+    if (category.subTypes.isEmpty) return null;
+    final imagePath = category.subTypes.first.imagePath;
+    if (imagePath == null || imagePath.isEmpty) return null;
+
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    final baseUrl = AppConstants.baseUrl.replaceAll('/api', '');
+    return '$baseUrl$imagePath';
+  }
+
   Widget _buildCategoryCard(MoldCategory category) {
+    final imageUrl = _getCategoryImageUrl(category);
     return GestureDetector(
       onTap: () {
         if (category.subTypes.length == 1) {
@@ -210,8 +225,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  DictionarySubtypeScreen(category: category),
+              builder: (context) => DictionarySubtypeScreen(category: category),
             ),
           );
         } else {
@@ -258,12 +272,38 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                   ),
                   child: Stack(
                     children: [
-                      Center(
-                        child: Text(
-                          category.emoji,
-                          style: const TextStyle(fontSize: 52),
+                      // S3 이미지가 있으면 네트워크 이미지, 없으면 이모지
+                      if (imageUrl != null)
+                        Positioned.fill(
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
+                                  category.emoji,
+                                  style: const TextStyle(fontSize: 52),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white.withOpacity(0.7),
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      else
+                        Center(
+                          child: Text(
+                            category.emoji,
+                            style: const TextStyle(fontSize: 52),
+                          ),
                         ),
-                      ),
                       // 세부 종류 개수 뱃지
                       if (category.subTypes.isNotEmpty)
                         Positioned(

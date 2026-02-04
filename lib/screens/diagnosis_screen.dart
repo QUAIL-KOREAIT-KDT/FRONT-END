@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
+import '../services/diagnosis_service.dart';
 
 class DiagnosisScreen extends StatefulWidget {
   const DiagnosisScreen({super.key});
@@ -17,6 +18,48 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  final DiagnosisService _diagnosisService = DiagnosisService();
+
+  // 선택된 장소 라벨 가져오기
+  String get _selectedLocationLabel {
+    return AppConstants.locationOptions[_selectedLocationIndex]['label'] ??
+        '기타';
+  }
+
+  // 곰팡이 진단 API 호출
+  Future<void> _analyzeMold() async {
+    if (_selectedImage == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _diagnosisService.predictMold(
+        _selectedImage!,
+        _selectedLocationLabel,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        // 결과 화면으로 이동하며 진단 결과 전달
+        Navigator.pushNamed(
+          context,
+          AppRoutes.diagnosisResult,
+          arguments: response,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('진단에 실패했습니다: $e'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    }
+  }
 
   // 카메라로 사진 촬영
   Future<void> _takePhoto() async {
@@ -182,10 +225,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _selectedImage != null
-                    ? () {
-                        Navigator.pushNamed(context, AppRoutes.diagnosisResult);
-                      }
+                onPressed: (_selectedImage != null && !_isLoading)
+                    ? _analyzeMold
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.mintPrimary,
@@ -196,13 +237,35 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                child: Text(
-                  _selectedImage != null ? '분석하기' : '사진을 먼저 선택해주세요',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: _isLoading
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            '분석 중...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        _selectedImage != null ? '분석하기' : '사진을 먼저 선택해주세요',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
           ],

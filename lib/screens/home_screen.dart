@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../config/theme.dart';
-import '../models/notification.dart';
 import '../widgets/notification_modal.dart';
+import '../services/home_service.dart';
+import '../providers/notification_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -14,56 +16,52 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final HomeService _homeService = HomeService();
 
-  // 더미 데이터
-  final int _riskPercentage = 20;
-  final String _location = '서울특별시 강남구';
+  // API 데이터
+  HomeInfoResponse? _homeInfo;
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  // 더미 알림 데이터
-  // TODO: 추후 백엔드 API 연동 시 NotificationService를 통해 데이터를 받아올 예정
-  // GET /api/notifications -> List<NotificationItem>
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: '1',
-      type: NotificationType.riskAlert,
-      title: '곰팡이 위험도 상승',
-      message: '현재 습도가 높아 곰팡이 발생 위험이 증가했습니다. 환기를 권장합니다.',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
-      isRead: false,
-    ),
-    NotificationItem(
-      id: '2',
-      type: NotificationType.tip,
-      title: '오늘의 환기 팁',
-      message: '오전 10시~12시 사이가 환기하기 가장 좋은 시간대입니다.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      isRead: false,
-    ),
-    NotificationItem(
-      id: '3',
-      type: NotificationType.diagnosis,
-      title: '진단 결과 확인',
-      message: '어제 촬영한 이미지의 곰팡이 진단 결과가 도착했습니다.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '4',
-      type: NotificationType.update,
-      title: '새로운 기능 추가',
-      message: '곰팡이 사전에 새로운 정보가 업데이트되었습니다. 지금 확인해보세요!',
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '5',
-      type: NotificationType.riskAlert,
-      title: '위험 지역 알림',
-      message: '욕실 습도가 70%를 넘었습니다. 곰팡이 발생 주의가 필요합니다.',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      isRead: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeInfo();
+    // 알림 목록 불러오기
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationProvider>().fetchNotifications();
+    });
+  }
+
+  Future<void> _loadHomeInfo() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final homeInfo = await _homeService.getHomeInfo();
+      if (mounted) {
+        setState(() {
+          _homeInfo = homeInfo;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = '데이터를 불러올 수 없습니다';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // 위험도 퍼센트
+  int get _riskPercentage => _homeInfo?.riskInfo?.percentage ?? 0;
+
+  // 위치
+  String get _location => _homeInfo?.regionAddress ?? '위치 정보 없음';
 
   // 위험도에 따른 이미지 반환
   String _getRiskImage() {
@@ -78,13 +76,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 위험도에 따른 메시지 반환
   String _getRiskMessage() {
-    if (_riskPercentage <= 30) {
-      return '곰팡이 걱정 없는 날이에요! 🎉';
-    } else if (_riskPercentage <= 60) {
-      return '환기가 필요해요! 💨';
-    } else {
-      return '곰팡이 주의가 필요해요! ⚠️';
+    // 40% 이상이면 주의 메시지 표시
+    if (_riskPercentage >= 40) {
+      if (_riskPercentage <= 60) {
+        return '곰팡이 주의가 필요해요! 환기를 권장합니다 💨';
+      } else {
+        return '곰팡이 위험도가 높아요! 즉시 환기해주세요 ⚠️';
+      }
     }
+    // 40% 미만이면 안전 메시지
+    if (_homeInfo?.riskInfo?.message != null && _riskPercentage < 40) {
+      return _homeInfo!.riskInfo!.message;
+    }
+    return '현재 곰팡이로부터 안전한 환경입니다. 😊';
   }
 
   // 캐릭터 이미지 위젯
@@ -141,28 +145,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // 헤더
-                _buildHeader(),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.mintPrimary),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadHomeInfo,
+                  color: AppTheme.mintPrimary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // 헤더
+                        _buildHeader(),
 
-                // 위치 바
-                _buildLocationBar(),
+                        // 위치 바
+                        _buildLocationBar(),
 
-                // 새로운 레이아웃: 바 게이지 + 캐릭터 이미지
-                _buildRiskDisplaySection(),
+                        // 에러 메시지
+                        if (_errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: AppTheme.danger),
+                            ),
+                          ),
 
-                // 날씨 카드
-                _buildWeatherCard(),
+                        // 새로운 레이아웃: 바 게이지 + 캐릭터 이미지
+                        _buildRiskDisplaySection(),
 
-                // 환기 추천 카드
-                _buildTipCard(),
+                        // 날씨 카드
+                        _buildWeatherCard(),
 
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
+                        // 환기 추천 카드
+                        _buildTipCard(),
+
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
         ),
       ),
     );
@@ -225,48 +248,55 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // 알림 버튼
-          GestureDetector(
-            onTap: () => NotificationModal.show(context, _notifications),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, _) {
+              final notifications = notificationProvider.notifications;
+              final unreadCount = notificationProvider.unreadCount;
+
+              return GestureDetector(
+                onTap: () => NotificationModal.show(context, notifications),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(
-                      Icons.notifications_outlined,
-                      color: AppTheme.gray700,
-                      size: 24,
-                    ),
-                  ),
-                  // 읽지 않은 알림이 있을 때만 빨간 점 표시
-                  if (_notifications.any((n) => !n.isRead))
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.pinkPrimary,
-                          shape: BoxShape.circle,
+                  child: Stack(
+                    children: [
+                      const Center(
+                        child: Icon(
+                          Icons.notifications_outlined,
+                          color: AppTheme.gray700,
+                          size: 24,
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
+                      // 읽지 않은 알림이 있을 때만 빨간 점 표시
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.pinkPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -611,6 +641,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWeatherCard() {
+    final weather = _homeInfo?.currentHourWeather;
+    final now = DateTime.now();
+    final dateStr = '${now.month}월 ${now.day}일';
+    final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekday = weekdays[now.weekday - 1];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(20),
@@ -639,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text(
-                '1월 20일 월요일',
+                '$dateStr ${weekday}요일',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppTheme.gray400,
@@ -651,14 +687,35 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildWeatherItem('🌡️', '-2°C', '기온'),
-              _buildWeatherItem('💧', '45%', '습도'),
-              _buildWeatherItem('☀️', '맑음', '날씨'),
+              _buildWeatherItem(
+                '🌡️',
+                weather != null ? '${weather.temp.toStringAsFixed(0)}°C' : '-',
+                '기온',
+              ),
+              _buildWeatherItem(
+                '💧',
+                weather != null ? '${weather.humid.toStringAsFixed(0)}%' : '-',
+                '습도',
+              ),
+              _buildWeatherItem(
+                _getConditionEmoji(weather?.condition ?? ''),
+                weather?.condition ?? '-',
+                '날씨',
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  String _getConditionEmoji(String condition) {
+    if (condition.contains('맑') || condition.contains('쾌적')) return '☀️';
+    if (condition.contains('흐림') || condition.contains('구름')) return '☁️';
+    if (condition.contains('비')) return '🌧️';
+    if (condition.contains('눈')) return '❄️';
+    if (condition.contains('습')) return '💧';
+    return '🌤️';
   }
 
   Widget _buildWeatherItem(String icon, String value, String label) {
@@ -687,11 +744,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTipCard() {
+    final ventilationTimes = _homeInfo?.ventilationTimes ?? [];
+    final hasVentilationTime = ventilationTimes.isNotEmpty;
+
+    String tipMessage;
+    String? timeRange;
+    if (hasVentilationTime) {
+      final first = ventilationTimes.first;
+      timeRange = '${first.startTime} ~ ${first.endTime}';
+      tipMessage = first.description.isNotEmpty
+          ? first.description
+          : '환기 찬스! (평균 습도 55%)';
+    } else {
+      tipMessage = '오늘은 환기하기 적합한\n시간이 없어요 🍄';
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppTheme.mintGradient,
+        gradient: hasVentilationTime
+            ? AppTheme.mintGradient
+            : LinearGradient(colors: [AppTheme.gray400, AppTheme.gray500]),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -703,8 +777,11 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white.withOpacity(0.25),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Center(
-              child: Text('💨', style: TextStyle(fontSize: 24)),
+            child: Center(
+              child: Text(
+                hasVentilationTime ? '💨' : '🍄',
+                style: const TextStyle(fontSize: 24),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -712,17 +789,41 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '오늘의 환기 추천',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '오늘의 환기 추천',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (timeRange != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          timeRange,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '오전 10시~12시 사이에\n10분간 환기를 추천해요!',
+                  tipMessage,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.85),

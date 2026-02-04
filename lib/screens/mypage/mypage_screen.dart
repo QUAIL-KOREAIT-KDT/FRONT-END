@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
+import '../../services/mypage_service.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../diagnosis_result_screen.dart' show RagSolution;
 
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
@@ -17,47 +21,63 @@ class _MypageScreenState extends State<MypageScreen> {
   String _selectedFilter = '전체';
   final List<String> _filters = ['전체', '창문', '벽지', '주방', '욕실'];
 
+  // API 서비스
+  final MyPageService _myPageService = MyPageService();
+
+  // 진단 기록 데이터
+  List<DiagnosisThumbnail> _diagnosisRecords = [];
+  bool _isLoading = true;
+  bool _isProcessing = false; // CRUD 작업 중 로딩 상태
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
-    // 마이페이지 진입 시 사용자 정보 로드
+    // 마이페이지 진입 시 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserProvider>().loadUser();
+      _loadDiagnosisHistory();
     });
   }
 
-  // 더미 데이터 - 곰팡이 분석 기록
-  final List<Map<String, dynamic>> _analysisRecords = [
-    {
-      'id': '1',
-      'moldType': '검은 곰팡이',
-      'location': '욕실',
-      'locationColor': const Color(0xFF4DD9BC),
-      'date': '2025.01.20 14:32',
-      'emoji': '🦠',
-    },
-    {
-      'id': '2',
-      'moldType': '푸른 곰팡이',
-      'location': '주방',
-      'locationColor': const Color(0xFF4DD9BC),
-      'date': '2025.01.18 09:15',
-      'emoji': '🦠',
-    },
-    {
-      'id': '3',
-      'moldType': '검은 곰팡이',
-      'location': '창문',
-      'locationColor': const Color(0xFF4DD9BC),
-      'date': '2025.01.15 11:20',
-      'emoji': '🦠',
-    },
-  ];
+  Future<void> _loadDiagnosisHistory() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  List<Map<String, dynamic>> get _filteredRecords {
-    if (_selectedFilter == '전체') return _analysisRecords;
-    return _analysisRecords
-        .where((record) => record['location'] == _selectedFilter)
+    try {
+      final records = await _myPageService.getDiagnosisHistory();
+      if (mounted) {
+        setState(() {
+          _diagnosisRecords = records;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = '기록을 불러올 수 없습니다';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// 필터 라벨 → 백엔드 location enum 매핑
+  static const Map<String, String> _filterToLocation = {
+    '창문': 'windows',
+    '벽지': 'wallpaper',
+    '주방': 'kitchen',
+    '욕실': 'bathroom',
+  };
+
+  List<DiagnosisThumbnail> get _filteredRecords {
+    if (_selectedFilter == '전체') return _diagnosisRecords;
+    final locationEnum = _filterToLocation[_selectedFilter];
+    if (locationEnum == null) return _diagnosisRecords;
+    return _diagnosisRecords
+        .where((r) => r.moldLocation == locationEnum)
         .toList();
   }
 
@@ -66,19 +86,71 @@ class _MypageScreenState extends State<MypageScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // 헤더
-            _buildHeader(context),
+            Column(
+              children: [
+                // 헤더
+                _buildHeader(context),
 
-            // 프로필 카드
-            _buildProfileCard(),
+                // 프로필 카드
+                _buildProfileCard(),
 
-            // 분석 기록 섹션
-            Expanded(
-              child: _buildAnalysisSection(),
+                // 분석 기록 섹션
+                Expanded(
+                  child: _buildAnalysisSection(),
+                ),
+              ],
             ),
+            // 로딩 오버레이
+            if (_isProcessing) _buildLoadingOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 로딩 오버레이 위젯
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.4),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  strokeWidth: 4,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppTheme.mintPrimary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '처리 중...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -118,90 +190,197 @@ class _MypageScreenState extends State<MypageScreen> {
         color: AppTheme.mintLight,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // 프로필 이미지
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: AppTheme.mintLight2, width: 2),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                'https://via.placeholder.com/56',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppTheme.gray100,
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: AppTheme.gray400,
-                      size: 32,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // 사용자 정보
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nickname,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.gray800,
+          Row(
+            children: [
+              // 프로필 이미지
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: AppTheme.mintLight2, width: 2),
+                ),
+                child: ClipOval(
+                  child: Image.network(
+                    'https://via.placeholder.com/56',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppTheme.gray100,
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: AppTheme.gray400,
+                          size: 32,
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 4),
+              ),
+              const SizedBox(width: 16),
+              // 사용자 정보
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nickname,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'heewon@kakao.com',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 수정 버튼
+              GestureDetector(
+                onTap: () => _showNicknameEditModal(),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: AppTheme.mintPrimary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '수정',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.mintPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // 🧪 테스트 알림 버튼
+          _buildTestNotificationButton(),
+        ],
+      ),
+    );
+  }
+
+  /// 테스트 알림 전송 버튼
+  Widget _buildTestNotificationButton() {
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, _) {
+        return GestureDetector(
+          onTap: () async {
+            // 로딩 표시
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text('테스트 알림 전송 중...'),
+                  ],
+                ),
+                duration: Duration(seconds: 1),
+              ),
+            );
+
+            // 테스트 알림 전송
+            final success = await notificationProvider.sendTestNotification();
+
+            if (mounted) {
+              // 결과 표시
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        success ? Icons.check_circle : Icons.error,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        success
+                            ? '✅ 테스트 알림이 전송되었습니다!'
+                            : '❌ 전송 실패 (FCM 토큰 확인 필요)',
+                      ),
+                    ],
+                  ),
+                  backgroundColor:
+                      success ? AppTheme.mintPrimary : AppTheme.danger,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+
+              // 성공 시 알림 목록 새로고침
+              if (success) {
+                await Future.delayed(const Duration(seconds: 1));
+                notificationProvider.fetchNotifications();
+              }
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.mintPrimary.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('🧪', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
                 Text(
-                  'heewon@kakao.com',
+                  '테스트 알림 보내기',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.gray500,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.mintPrimary,
                   ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.notifications_active_outlined,
+                  size: 18,
+                  color: AppTheme.mintPrimary,
                 ),
               ],
             ),
           ),
-          // 수정 버튼
-          GestureDetector(
-            onTap: () => _showNicknameEditModal(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.mintPrimary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '수정',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.mintPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -229,10 +408,20 @@ class _MypageScreenState extends State<MypageScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                '총 ${_analysisRecords.length}건',
+                '총 ${_diagnosisRecords.length}건',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.gray400,
+                ),
+              ),
+              const Spacer(),
+              // 새로고침 버튼
+              GestureDetector(
+                onTap: _loadDiagnosisHistory,
+                child: Icon(
+                  Icons.refresh_rounded,
+                  color: AppTheme.gray400,
+                  size: 20,
                 ),
               ),
             ],
@@ -242,15 +431,21 @@ class _MypageScreenState extends State<MypageScreen> {
         const SizedBox(height: 16),
 
         // 필터 탭
-        if (_analysisRecords.isNotEmpty) _buildFilterTabs(),
+        if (_diagnosisRecords.isNotEmpty) _buildFilterTabs(),
 
         const SizedBox(height: 16),
 
         // 기록 리스트 또는 빈 상태
         Expanded(
-          child: _analysisRecords.isEmpty
-              ? _buildEmptyState()
-              : _buildRecordList(),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.mintPrimary),
+                )
+              : _errorMessage != null
+                  ? Center(child: Text(_errorMessage!))
+                  : _diagnosisRecords.isEmpty
+                      ? _buildEmptyState()
+                      : _buildRecordList(),
         ),
       ],
     );
@@ -280,7 +475,8 @@ class _MypageScreenState extends State<MypageScreen> {
                     color: isSelected ? AppTheme.mintPrimary : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
+                      color:
+                          isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
                     ),
                   ),
                   child: Row(
@@ -397,115 +593,427 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   Widget _buildRecordList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: _filteredRecords.length,
-      itemBuilder: (context, index) {
-        final record = _filteredRecords[index];
-        return _buildRecordCard(record);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadDiagnosisHistory,
+      color: AppTheme.mintPrimary,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _filteredRecords.length,
+        itemBuilder: (context, index) {
+          final record = _filteredRecords[index];
+          return _buildRecordCard(record);
+        },
+      ),
     );
   }
 
-  Widget _buildRecordCard(Map<String, dynamic> record) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.gray200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Widget _buildRecordCard(DiagnosisThumbnail record) {
+    return GestureDetector(
+      onTap: () => _showDiagnosisDetail(record.id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.gray200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // 곰팡이 이미지
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.gray100,
+                borderRadius: BorderRadius.circular(12),
+                image: record.imagePath.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(record.imagePath),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: record.imagePath.isEmpty
+                  ? const Center(
+                      child: Text('🦠', style: TextStyle(fontSize: 32)),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            // 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        record.result.isNotEmpty
+                            ? record.result
+                            : '진단 기록 #${record.id}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.gray800,
+                        ),
+                      ),
+                      if (record.result.isNotEmpty &&
+                          record.locationKorean.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          record.locationKorean,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.gray500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    record.formattedDate,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.gray400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 삭제 버튼
+            IconButton(
+              onPressed: () => _showDeleteConfirmDialog(record),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: AppTheme.gray400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDiagnosisDetail(int id) async {
+    // 로딩 오버레이 표시
+    setState(() => _isProcessing = true);
+
+    try {
+      final detail = await _myPageService.getDiagnosisInfo(id);
+
+      // 로딩 오버레이 숨김
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+
+      if (mounted) {
+        // RAG 솔루션 파싱
+        final ragSolution = RagSolution.parse(detail.modelSolution);
+
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.9,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 헤더
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.mintPrimary.withOpacity(0.1),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('📋', style: TextStyle(fontSize: 24)),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '진단 결과: ${detail.result}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.gray800,
+                                  ),
+                                ),
+                                Text(
+                                  '${detail.locationKorean} · ${detail.formattedDate}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.gray500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.gray200,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: AppTheme.gray600,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 신뢰도 배지
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: detail.confidencePercent >= 80
+                          ? AppTheme.danger.withOpacity(0.1)
+                          : detail.confidencePercent >= 60
+                              ? AppTheme.warning.withOpacity(0.1)
+                              : AppTheme.mintPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: detail.confidencePercent >= 80
+                            ? AppTheme.danger.withOpacity(0.3)
+                            : detail.confidencePercent >= 60
+                                ? AppTheme.warning.withOpacity(0.3)
+                                : AppTheme.mintPrimary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.analytics_rounded,
+                          color: detail.confidencePercent >= 80
+                              ? AppTheme.danger
+                              : detail.confidencePercent >= 60
+                                  ? AppTheme.warning
+                                  : AppTheme.mintPrimary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '신뢰도: ${detail.confidencePercent}%',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: detail.confidencePercent >= 80
+                                ? AppTheme.danger
+                                : detail.confidencePercent >= 60
+                                    ? AppTheme.warning
+                                    : AppTheme.mintPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 스크롤 가능한 내용
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 🔬 진단 결과
+                          if (ragSolution.diagnosis.isNotEmpty) ...[
+                            _buildSectionTitle('🔬', '진단 결과'),
+                            _buildSectionContent(ragSolution.diagnosis),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // 📍 발생 장소
+                          if (ragSolution
+                              .frequentlyVisitedAreas.isNotEmpty) ...[
+                            _buildSectionTitle('📍', '주요 발생 장소'),
+                            ...ragSolution.frequentlyVisitedAreas
+                                .map((area) => _buildBulletItem(area)),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // 💡 해결 방법
+                          if (ragSolution.solutions.isNotEmpty) ...[
+                            _buildSectionTitle('💡', '해결 방법'),
+                            ...ragSolution.solutions
+                                .map((sol) => _buildBulletItem(sol)),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // 🛡️ 예방법
+                          if (ragSolution.preventions.isNotEmpty) ...[
+                            _buildSectionTitle('🛡️', '예방법'),
+                            ...ragSolution.preventions
+                                .map((prev) => _buildBulletItem(prev)),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // 🤖 AI 조언
+                          if (ragSolution.insight.isNotEmpty) ...[
+                            _buildSectionTitle('🤖', 'AI 조언'),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.gray100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                ragSolution.insight,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.gray700,
+                                  fontStyle: FontStyle.italic,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 닫기 버튼
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.mintPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          '확인',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // 로딩 오버레이 숨김
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('상세 정보를 불러올 수 없습니다: $e'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 섹션 타이틀 위젯
+  Widget _buildSectionTitle(String emoji, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.gray800,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  /// 섹션 내용 위젯
+  Widget _buildSectionContent(String content) {
+    return Text(
+      content,
+      style: TextStyle(
+        fontSize: 14,
+        color: AppTheme.gray700,
+        height: 1.5,
+      ),
+    );
+  }
+
+  /// 불렛 아이템 위젯
+  Widget _buildBulletItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 곰팡이 이미지
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppTheme.gray100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Text(
-                    record['emoji'],
-                    style: const TextStyle(fontSize: 32),
-                  ),
-                ),
-                Positioned(
-                  bottom: 4,
-                  left: 4,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: AppTheme.gray700,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: AppTheme.mintPrimary,
+                borderRadius: BorderRadius.circular(3),
+              ),
             ),
           ),
-          const SizedBox(width: 16),
-          // 정보
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  record['moldType'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.gray800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.mintLight,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '● ${record['location']}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.mintPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  record['date'],
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.gray400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // 삭제 버튼
-          IconButton(
-            onPressed: () => _showDeleteConfirmDialog(record),
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              color: AppTheme.gray400,
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.gray700,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -647,14 +1155,22 @@ class _MypageScreenState extends State<MypageScreen> {
                           return;
                         }
 
+                        // 다이얼로그 닫기 먼저
+                        Navigator.pop(context);
+
+                        // 로딩 오버레이 표시
+                        setState(() => _isProcessing = true);
+
                         // UserProvider를 통해 닉네임 업데이트 (API + 상태 갱신)
-                        final userProvider = context.read<UserProvider>();
+                        final userProvider = this.context.read<UserProvider>();
                         final success =
                             await userProvider.updateNickname(newNickname);
 
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                        // 로딩 오버레이 숨김
+                        if (mounted) {
+                          setState(() => _isProcessing = false);
+
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(
                               content: Text(
                                   success ? '닉네임이 변경되었습니다' : '닉네임 변경에 실패했습니다'),
@@ -694,7 +1210,7 @@ class _MypageScreenState extends State<MypageScreen> {
     );
   }
 
-  void _showDeleteConfirmDialog(Map<String, dynamic> record) {
+  void _showDeleteConfirmDialog(DiagnosisThumbnail record) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -702,7 +1218,7 @@ class _MypageScreenState extends State<MypageScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         title: const Text('기록 삭제'),
-        content: Text('${record['moldType']} 기록을 삭제하시겠습니까?'),
+        content: Text('진단 기록 #${record.id}을(를) 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -712,21 +1228,47 @@ class _MypageScreenState extends State<MypageScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _analysisRecords.removeWhere((r) => r['id'] == record['id']);
-              });
+            onPressed: () async {
+              // 다이얼로그 닫기 먼저
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('기록이 삭제되었습니다'),
-                  backgroundColor: AppTheme.mintPrimary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
+
+              // 로딩 오버레이 표시
+              setState(() => _isProcessing = true);
+
+              final success = await _myPageService.deleteDiagnosis(record.id);
+
+              // 로딩 오버레이 숨김
+              if (mounted) {
+                setState(() => _isProcessing = false);
+
+                if (success) {
+                  // 목록에서 제거
+                  setState(() {
+                    _diagnosisRecords.removeWhere((r) => r.id == record.id);
+                  });
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: const Text('기록이 삭제되었습니다'),
+                      backgroundColor: AppTheme.mintPrimary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: const Text('삭제에 실패했습니다'),
+                      backgroundColor: AppTheme.danger,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             child: Text(
               '삭제',

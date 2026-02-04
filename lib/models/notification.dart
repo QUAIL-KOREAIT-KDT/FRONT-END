@@ -1,14 +1,16 @@
 // 알림 데이터 모델
 //
-// TODO: 추후 백엔드 API 연동 시 아래 형식으로 데이터를 받아올 예정
+// 백엔드 API 연동
 // GET /api/notifications
-// Response: { "notifications": [NotificationItem, ...] }
+// Response: [NotificationItem, ...]
 
 enum NotificationType {
-  riskAlert,    // 곰팡이 위험도 알림
-  update,       // 앱 업데이트/공지사항
-  tip,          // 환기 팁 등
-  diagnosis,    // 진단 결과 알림
+  daily, // 매일 8시 정기 알림
+  notice, // 공지사항
+  riskAlert, // 곰팡이 위험도 알림 (레거시)
+  update, // 앱 업데이트 (레거시)
+  tip, // 환기 팁 등 (레거시)
+  diagnosis, // 진단 결과 알림 (레거시)
 }
 
 class NotificationItem {
@@ -30,14 +32,11 @@ class NotificationItem {
     this.data,
   });
 
-  /// TODO: 백엔드 연동 시 사용할 JSON 파싱
+  /// 백엔드 JSON 파싱
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     return NotificationItem(
-      id: json['id'] as String,
-      type: NotificationType.values.firstWhere(
-        (e) => e.name == json['type'],
-        orElse: () => NotificationType.update,
-      ),
+      id: json['id'].toString(),
+      type: _parseType(json['type'] as String?),
       title: json['title'] as String,
       message: json['message'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -46,9 +45,33 @@ class NotificationItem {
     );
   }
 
+  /// 타입 문자열 파싱
+  static NotificationType _parseType(String? typeStr) {
+    switch (typeStr) {
+      case 'daily':
+        return NotificationType.daily;
+      case 'notice':
+        return NotificationType.notice;
+      case 'riskAlert':
+        return NotificationType.riskAlert;
+      case 'update':
+        return NotificationType.update;
+      case 'tip':
+        return NotificationType.tip;
+      case 'diagnosis':
+        return NotificationType.diagnosis;
+      default:
+        return NotificationType.daily;
+    }
+  }
+
   // 알림 타입별 아이콘
   String get icon {
     switch (type) {
+      case NotificationType.daily:
+        return '🌤️';
+      case NotificationType.notice:
+        return '📢';
       case NotificationType.riskAlert:
         return '⚠️';
       case NotificationType.update:

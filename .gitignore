@@ -155,3 +155,5 @@ android/local.properties
 
 # 프로젝트 관련 사용 설명
 instruction
+BACKEND-CLAUDE.md
+FRONTEND-TODO.md

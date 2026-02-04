@@ -40,20 +40,28 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAutoLogin() async {
-    // 애니메이션 완료 대기
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) return;
-
     try {
+      // 애니메이션 완료 대기
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      if (!mounted) return;
+
       final authProvider = context.read<AuthProvider>();
-      final isLoggedIn = await authProvider.autoLogin().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          debugPrint('자동 로그인 타임아웃');
-          return false;
-        },
-      );
+
+      // 자동 로그인 시도 (타임아웃 3초로 단축)
+      bool isLoggedIn = false;
+      try {
+        isLoggedIn = await authProvider.autoLogin().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            debugPrint('⚠️ 자동 로그인 타임아웃 - 로그인 화면으로 이동');
+            return false;
+          },
+        );
+      } catch (e) {
+        debugPrint('⚠️ 자동 로그인 실패: $e');
+        isLoggedIn = false;
+      }
 
       if (!mounted) return;
 
@@ -72,9 +80,14 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       }
     } catch (e) {
-      debugPrint('자동 로그인 에러: $e');
+      // 최종 안전장치: 어떤 에러가 나도 로그인 화면으로
+      debugPrint('❌ Splash 화면 에러: $e');
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        try {
+          Navigator.pushReplacementNamed(context, AppRoutes.login);
+        } catch (navError) {
+          debugPrint('❌ Navigator 에러: $navError');
+        }
       }
     }
   }

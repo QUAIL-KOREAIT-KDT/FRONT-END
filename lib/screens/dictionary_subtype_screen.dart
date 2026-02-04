@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../config/constants.dart';
 import '../models/mold_category.dart';
 import 'dictionary_subtype_detail_screen.dart';
 
@@ -21,7 +22,8 @@ class DictionarySubtypeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = _isLightBackground(category.gradientColors[0]);
     final textColor = isLight ? AppTheme.gray700 : Colors.white;
-    final subTextColor = isLight ? AppTheme.gray500 : Colors.white.withOpacity(0.9);
+    final subTextColor =
+        isLight ? AppTheme.gray500 : Colors.white.withOpacity(0.9);
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
@@ -133,7 +135,23 @@ class DictionarySubtypeScreen extends StatelessWidget {
     );
   }
 
+  /// 이미지 URL 생성 (S3 또는 백엔드 static)
+  String? _getImageUrl(MoldSubType subType) {
+    if (subType.imagePath == null || subType.imagePath!.isEmpty) {
+      return null;
+    }
+    final path = subType.imagePath!;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    final baseUrl = AppConstants.baseUrl.replaceAll('/api', '');
+    return '$baseUrl$path';
+  }
+
   Widget _buildSubTypeCard(BuildContext context, MoldSubType subType) {
+    final imageUrl = _getImageUrl(subType);
+    debugPrint(
+        '[Dictionary] subType: ${subType.name}, imagePath: ${subType.imagePath}, imageUrl: $imageUrl');
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -174,11 +192,32 @@ class DictionarySubtypeScreen extends StatelessWidget {
                   left: Radius.circular(20),
                 ),
               ),
-              child: const Center(
-                child: Text(
-                  '🦠',
-                  style: TextStyle(fontSize: 36),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(20),
                 ),
+                child: imageUrl != null
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text('🦠', style: TextStyle(fontSize: 36)),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white.withOpacity(0.7),
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                      )
+                    : const Center(
+                        child: Text('🦠', style: TextStyle(fontSize: 36)),
+                      ),
               ),
             ),
             Expanded(

@@ -4,6 +4,8 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
+import '../config/constants.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _user;
@@ -15,10 +17,11 @@ class AuthProvider extends ChangeNotifier {
   final _authService = AuthService();
 
   // ============================================================
-  // 개발 모드 설정 - 에뮬레이터에서 카카오 로그인 우회
-  // 실제 기기 테스트 시 false로 변경하세요
+  // 개발 모드 설정 - PRODUCTION 빌드 시 자동으로 false
+  // flutter build apk --dart-define=PRODUCTION=true → 실제 카카오 로그인
+  // flutter build apk (기본) → 개발용 로그인 우회
   // ============================================================
-  static const bool _devBypassKakaoLogin = true;
+  static bool get _devBypassKakaoLogin => !AppConstants.isProduction;
   // ============================================================
 
   UserModel? get user => _user;
@@ -48,6 +51,9 @@ class AuthProvider extends ChangeNotifier {
 
         _isLoggedIn = true;
         _isNewUser = authResponse.isNewUser;
+
+        // FCM 토큰 등록
+        await NotificationService().registerFCMToken();
 
         debugPrint(
             '[개발 모드] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');
@@ -117,6 +123,9 @@ class AuthProvider extends ChangeNotifier {
 
       _isLoggedIn = true;
       _isNewUser = authResponse.isNewUser;
+
+      // FCM 토큰 등록
+      await NotificationService().registerFCMToken();
 
       debugPrint(
           '[AuthProvider] 로그인 완료 - userId: ${authResponse.userId}, isNewUser: $_isNewUser');

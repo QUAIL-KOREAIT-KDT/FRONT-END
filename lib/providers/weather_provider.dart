@@ -4,7 +4,7 @@ import '../services/home_service.dart';
 
 class WeatherProvider extends ChangeNotifier {
   WeatherModel? _weather;
-  RefreshResponse? _refreshInfo;
+  HomeInfoResponse? _homeInfo;
   bool _isLoading = false;
   String? _error;
   String _location = '서울특별시';
@@ -12,7 +12,7 @@ class WeatherProvider extends ChangeNotifier {
   final HomeService _homeService = HomeService();
 
   WeatherModel? get weather => _weather;
-  RefreshResponse? get refreshInfo => _refreshInfo;
+  HomeInfoResponse? get homeInfo => _homeInfo;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get location => _location;
@@ -25,18 +25,13 @@ class WeatherProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 날씨와 환기 정보 병렬 호출
-      final results = await Future.wait([
-        _homeService.getWeather(),
-        _homeService.getRefreshInfo(),
-      ]);
+      // 단일 API로 모든 정보 가져오기
+      _homeInfo = await _homeService.getHomeInfo();
 
-      final weatherResponse = results[0] as WeatherResponse;
-      final refreshResponse = results[1] as RefreshResponse;
-
-      _weather = _convertToWeatherModel(weatherResponse);
-      _refreshInfo = refreshResponse;
-      _location = weatherResponse.region.isNotEmpty ? weatherResponse.region : _location;
+      _weather = _convertToWeatherModel(_homeInfo!);
+      _location = _homeInfo!.regionAddress.isNotEmpty
+          ? _homeInfo!.regionAddress
+          : _location;
 
       debugPrint('[WeatherProvider] 날씨 로드 완료: $_location');
 
@@ -48,7 +43,7 @@ class WeatherProvider extends ChangeNotifier {
 
       // 실패 시 더미 데이터 사용
       _weather = WeatherModel.dummy();
-      _refreshInfo = RefreshResponse.dummy();
+      _homeInfo = null;
 
       _isLoading = false;
       notifyListeners();
@@ -56,25 +51,31 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   // API 응답을 WeatherModel로 변환
-  WeatherModel _convertToWeatherModel(WeatherResponse response) {
-    final temp = double.tryParse(response.temp) ?? 0.0;
-    final humid = int.tryParse(response.humid) ?? 0;
-    final pp = int.tryParse(response.pp) ?? 0;
+  WeatherModel _convertToWeatherModel(HomeInfoResponse response) {
+    if (response.currentWeather.isEmpty) {
+      return WeatherModel.dummy();
+    }
+
+    final weatherDetail = response.currentWeather.first;
+    final temp = weatherDetail.temp;
+    final humid = weatherDetail.humid.toInt();
+    final rainProb = weatherDetail.rainProb;
 
     String condition;
     String conditionIcon;
 
-    if (pp >= 60) {
+    if (rainProb >= 60) {
       condition = '비';
       conditionIcon = '🌧️';
-    } else if (pp >= 30) {
+    } else if (rainProb >= 30) {
       condition = '흐림';
       conditionIcon = '☁️';
     } else if (temp < 0) {
       condition = '맑고 추움';
       conditionIcon = '❄️';
     } else {
-      condition = '맑음';
+      condition =
+          weatherDetail.condition.isNotEmpty ? weatherDetail.condition : '맑음';
       conditionIcon = '☀️';
     }
 
@@ -95,7 +96,8 @@ class WeatherProvider extends ChangeNotifier {
   // 환기 추천 여부
   bool get isGoodForVentilation {
     if (_weather == null) return false;
-    if (_refreshInfo != null && _refreshInfo!.canRefresh) return true;
+    if (_homeInfo != null && _homeInfo!.ventilationTimes.isNotEmpty)
+      return true;
     return _weather!.humidity < 70 &&
         !_weather!.condition.contains('비') &&
         !_weather!.condition.contains('눈');
@@ -103,11 +105,12 @@ class WeatherProvider extends ChangeNotifier {
 
   // 환기 추천 메시지
   String get ventilationMessage {
-    if (_refreshInfo != null && _refreshInfo!.canRefresh) {
-      final times = _refreshInfo!.dateList;
-      if (times.isNotEmpty) {
-        return '${_formatTime(times.first)} ~ ${_formatTime(times.last)} 환기 추천!';
+    if (_homeInfo != null && _homeInfo!.ventilationTimes.isNotEmpty) {
+      final vent = _homeInfo!.ventilationTimes.first;
+      if (vent.description.isNotEmpty) {
+        return vent.description;
       }
+      return '${vent.startTime} ~ ${vent.endTime} 환기 추천!';
     }
 
     if (_weather == null) return '';
@@ -121,15 +124,5 @@ class WeatherProvider extends ChangeNotifier {
     } else {
       return '실내 환기에 주의가 필요해요.';
     }
-  }
-
-  // 시간 포맷팅 (20260127 1300 -> 13:00)
-  String _formatTime(String dateTime) {
-    if (dateTime.length >= 13) {
-      final hour = dateTime.substring(9, 11);
-      final minute = dateTime.substring(11, 13);
-      return '$hour:$minute';
-    }
-    return dateTime;
   }
 }
