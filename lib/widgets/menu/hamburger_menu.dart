@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/user_service.dart';
 
 class HamburgerMenu extends StatefulWidget {
   const HamburgerMenu({super.key});
@@ -15,6 +16,12 @@ class _HamburgerMenuState extends State<HamburgerMenu>
     with SingleTickerProviderStateMixin {
   late AnimationController _badgeAnimController;
   late Animation<double> _badgeGlowAnimation;
+
+  // 사용자 정보
+  String _nickname = '회원님';
+  String _email = '';
+  bool _isLoadingUser = true;
+  final UserService _userService = UserService();
 
   @override
   void initState() {
@@ -30,6 +37,44 @@ class _HamburgerMenuState extends State<HamburgerMenu>
         curve: Curves.easeInOut,
       ),
     );
+
+    _loadUserInfo();
+  }
+
+  /// 사용자 정보 로드
+  Future<void> _loadUserInfo() async {
+    try {
+      // 1. AuthProvider에서 먼저 확인
+      final authProvider = context.read<AuthProvider>();
+      final user = authProvider.user;
+
+      if (user != null && user.nickname != null && user.nickname!.isNotEmpty) {
+        setState(() {
+          _nickname = user.nickname!;
+          _email = user.email ?? '';
+          _isLoadingUser = false;
+        });
+        return;
+      }
+
+      // 2. 백엔드 API에서 가져오기
+      final userResponse = await _userService.getMe();
+      if (mounted) {
+        setState(() {
+          _nickname = userResponse.nickname ?? '회원님';
+          // 백엔드에 이메일이 없으므로 카카오 ID 표시 또는 빈 문자열
+          _email = '';
+          _isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[HamburgerMenu] 사용자 정보 로드 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingUser = false;
+        });
+      }
+    }
   }
 
   @override
@@ -154,27 +199,52 @@ class _HamburgerMenuState extends State<HamburgerMenu>
           const SizedBox(width: 16),
           // 사용자 정보
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '회원님',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.gray800,
+            child: _isLoadingUser
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppTheme.gray200,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 120,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: AppTheme.gray100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_nickname}님',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.gray800,
+                        ),
+                      ),
+                      if (_email.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _email,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.gray400,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'user@kakao.com',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.gray400,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -315,7 +385,8 @@ class _HamburgerMenuState extends State<HamburgerMenu>
                 // TODO: 도움말 페이지로 이동
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 child: Row(
                   children: [
                     Text(
@@ -357,7 +428,8 @@ class _HamburgerMenuState extends State<HamburgerMenu>
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 child: Row(
                   children: [
                     Icon(

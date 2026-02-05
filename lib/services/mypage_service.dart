@@ -100,7 +100,7 @@ class DiagnosisDetail {
   }
 
   /// 신뢰도 퍼센트
-  int get confidencePercent => (confidence * 100).toInt();
+  int get confidencePercent => confidence.toInt();
 
   /// 장소 한글 변환
   String get locationKorean {

@@ -5,6 +5,7 @@ import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
 import '../services/diagnosis_service.dart';
+import 'camera_screen.dart';
 
 class DiagnosisScreen extends StatefulWidget {
   const DiagnosisScreen({super.key});
@@ -39,14 +40,19 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       );
 
       if (mounted) {
-        setState(() => _isLoading = false);
-
         // 결과 화면으로 이동하며 진단 결과 전달
         Navigator.pushNamed(
           context,
           AppRoutes.diagnosisResult,
           arguments: response,
         );
+
+        // 진단 완료 후 화면 초기화
+        setState(() {
+          _isLoading = false;
+          _selectedImage = null;
+          _selectedLocationIndex = 0;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -61,21 +67,28 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     }
   }
 
-  // 카메라로 사진 촬영
+  // 카메라로 사진 촬영 (가이드 오버레이 포함 커스텀 카메라 사용)
   Future<void> _takePhoto() async {
     try {
       setState(() => _isLoading = true);
 
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+      // 커스텀 카메라 화면으로 이동 (초록 가이드 + 자동 크롭)
+      final File? croppedImage = await Navigator.push<File>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const CameraScreen(),
+        ),
       );
 
-      if (photo != null) {
+      if (croppedImage != null) {
+        // 크롭된 이미지 확인 로깅
+        final fileSize = await croppedImage.length();
+        debugPrint('[DiagnosisScreen] 받은 크롭 이미지: ${croppedImage.path}');
+        debugPrint(
+            '[DiagnosisScreen] 파일 크기: ${(fileSize / 1024).toStringAsFixed(1)} KB');
+
         setState(() {
-          _selectedImage = File(photo.path);
+          _selectedImage = croppedImage;
         });
       }
     } catch (e) {
@@ -138,138 +151,178 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          '🔬 곰팡이 진단',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.gray800,
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SafeArea(
         child: Column(
           children: [
-            // 업로드 영역
+            // 헤더
+            _buildHeader(),
+
+            // 본문
             Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppTheme.mintLight, AppTheme.pinkLight],
-                  ),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: AppTheme.mintMedium,
-                    width: 3,
-                    strokeAlign: BorderSide.strokeAlignInside,
-                  ),
-                ),
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppTheme.mintPrimary,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  children: [
+                    // 업로드 영역
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppTheme.mintLight, AppTheme.pinkLight],
+                          ),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(
+                            color: AppTheme.mintMedium,
+                            width: 3,
+                            strokeAlign: BorderSide.strokeAlignInside,
+                          ),
                         ),
-                      )
-                    : _selectedImage != null
-                        ? _buildImagePreview()
-                        : _buildUploadPlaceholder(),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 장소 선택
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.gray100,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '곰팡이가 발생한 장소를 선택해주세요',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.gray700,
+                        child: _isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.mintPrimary,
+                                ),
+                              )
+                            : _selectedImage != null
+                                ? _buildImagePreview()
+                                : _buildUploadPlaceholder(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: List.generate(
-                      AppConstants.locationOptions.length,
-                      (index) => _buildLocationChip(index),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-            // 분석하기 버튼
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: (_selectedImage != null && !_isLoading)
-                    ? _analyzeMold
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.mintPrimary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppTheme.gray200,
-                  disabledForegroundColor: AppTheme.gray400,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                ),
-                child: _isLoading
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    // 장소 선택
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray100,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                          const Text(
+                            '곰팡이가 발생한 장소를 선택해주세요',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.gray700,
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            '분석 중...',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              alignment: WrapAlignment.center,
+                              children: List.generate(
+                                AppConstants.locationOptions.length,
+                                (index) => _buildLocationChip(index),
+                              ),
                             ),
                           ),
                         ],
-                      )
-                    : Text(
-                        _selectedImage != null ? '분석하기' : '사진을 먼저 선택해주세요',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
                       ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // 분석하기 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: (_selectedImage != null && !_isLoading)
+                            ? _analyzeMold
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.mintPrimary,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: AppTheme.gray200,
+                          disabledForegroundColor: AppTheme.gray400,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    '분석 중...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                _selectedImage != null
+                                    ? '분석하기'
+                                    : '사진을 먼저 선택해주세요',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                '🔬',
+                style: TextStyle(fontSize: 28),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '곰팡이 진단',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.gray800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '스마트한 AI 곰팡이 진단 솔루션',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.gray400,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -389,6 +442,12 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
             child: Image.file(
               _selectedImage!,
               fit: BoxFit.cover,
+              // 이미지 캐시 무효화를 위해 key 사용
+              key: ValueKey(_selectedImage!.path),
+              // 이미지 캐시 비활성화
+              cacheWidth: null,
+              cacheHeight: null,
+              gaplessPlayback: false,
             ),
           ),
         ),

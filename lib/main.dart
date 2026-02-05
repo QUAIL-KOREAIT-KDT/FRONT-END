@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'config/constants.dart';
 import 'config/theme.dart';
@@ -25,7 +26,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // 네이티브 스플래시 화면 유지 (Flutter 스플래시 화면으로 전환될 때까지)
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Firebase 초기화 (에러 발생 시에도 앱 실행)
   try {

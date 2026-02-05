@@ -17,21 +17,21 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late int _currentIndex;
+  int _previousIndex = -1;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // 각 탭의 화면들
-  late final List<Widget> _screens;
+  final ScrollController _homeScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _screens = [
-      const HomeScreenContent(),
-      const DiagnosisScreen(),
-      const DictionaryScreen(),
-      const MypageScreenContent(),
-    ];
+    _previousIndex = widget.initialIndex;
+  }
+
+  @override
+  void dispose() {
+    _homeScrollController.dispose();
+    super.dispose();
   }
 
   void _onTabTapped(int index) {
@@ -39,7 +39,12 @@ class _MainScreenState extends State<MainScreen> {
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
     }
+    // 홈 탭으로 이동 시 스크롤을 상단으로 복귀
+    if (index == 0) {
+      _homeScrollController.jumpTo(0);
+    }
     setState(() {
+      _previousIndex = _currentIndex;
       _currentIndex = index;
     });
   }
@@ -50,18 +55,20 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 마이페이지 탭(인덱스 3)으로 전환 시 필터 초기화
+    final resetMypageFilter = _currentIndex == 3 && _previousIndex != 3;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: const HamburgerMenu(),
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens.map((screen) {
-          // HomeScreenContent에 drawer 열기 콜백 전달
-          if (screen is HomeScreenContent) {
-            return HomeScreenContent(onMenuTap: openDrawer);
-          }
-          return screen;
-        }).toList(),
+        children: [
+          HomeScreenContent(onMenuTap: openDrawer, scrollController: _homeScrollController),
+          const DiagnosisScreen(),
+          const DictionaryScreen(),
+          MypageScreen(resetFilter: resetMypageFilter),
+        ],
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
@@ -74,21 +81,12 @@ class _MainScreenState extends State<MainScreen> {
 // HomeScreen을 MainScreen 내에서 사용하기 위한 컨텐츠 버전
 class HomeScreenContent extends StatelessWidget {
   final VoidCallback? onMenuTap;
+  final ScrollController? scrollController;
 
-  const HomeScreenContent({super.key, this.onMenuTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return HomeScreen(onMenuTap: onMenuTap);
-  }
-}
-
-// MypageScreen을 MainScreen 내에서 사용하기 위한 컨텐츠 버전
-class MypageScreenContent extends StatelessWidget {
-  const MypageScreenContent({super.key});
+  const HomeScreenContent({super.key, this.onMenuTap, this.scrollController});
 
   @override
   Widget build(BuildContext context) {
-    return const MypageScreen();
+    return HomeScreen(onMenuTap: onMenuTap, scrollController: scrollController);
   }
 }

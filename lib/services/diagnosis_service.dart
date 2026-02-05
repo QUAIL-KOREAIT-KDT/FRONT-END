@@ -60,7 +60,7 @@ class DiagnosisResponse {
   String get grade => result;
 
   /// 신뢰도 퍼센트
-  int get confidencePercent => (confidence * 100).toInt();
+  int get confidencePercent => confidence.toInt();
 }
 
 /// 진단 API 서비스
@@ -71,6 +71,13 @@ class DiagnosisService {
   Future<DiagnosisResponse> predictMold(File imageFile, String place) async {
     try {
       final fileName = imageFile.path.split(Platform.pathSeparator).last;
+
+      // 전송할 파일 정보 로깅
+      final fileSize = await imageFile.length();
+      debugPrint('[DiagnosisService] 전송 파일: ${imageFile.path}');
+      debugPrint('[DiagnosisService] 파일명: $fileName');
+      debugPrint(
+          '[DiagnosisService] 파일 크기: ${(fileSize / 1024).toStringAsFixed(1)} KB');
 
       // 한글 장소명을 백엔드 enum 값으로 변환
       final apiPlace = locationToApiValue[place] ?? place;

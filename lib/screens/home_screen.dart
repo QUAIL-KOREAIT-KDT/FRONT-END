@@ -8,8 +8,9 @@ import '../providers/notification_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
+  final ScrollController? scrollController;
 
-  const HomeScreen({super.key, this.onMenuTap});
+  const HomeScreen({super.key, this.onMenuTap, this.scrollController});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -79,16 +80,16 @@ class _HomeScreenState extends State<HomeScreen> {
     // 40% 이상이면 주의 메시지 표시
     if (_riskPercentage >= 40) {
       if (_riskPercentage <= 60) {
-        return '곰팡이 주의가 필요해요! 환기를 권장합니다 💨';
+        return '곰팡이 주의가 필요해요! \n환기를 권장합니다.';
       } else {
-        return '곰팡이 위험도가 높아요! 즉시 환기해주세요 ⚠️';
+        return '곰팡이 위험도가 높아요! \n즉시 환기해주세요.';
       }
     }
     // 40% 미만이면 안전 메시지
     if (_homeInfo?.riskInfo?.message != null && _riskPercentage < 40) {
       return _homeInfo!.riskInfo!.message;
     }
-    return '현재 곰팡이로부터 안전한 환경입니다. 😊';
+    return '현재 곰팡이로부터 안전한 환경입니다.';
   }
 
   // 캐릭터 이미지 위젯
@@ -153,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onRefresh: _loadHomeInfo,
                   color: AppTheme.mintPrimary,
                   child: SingleChildScrollView(
+                    controller: widget.scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: [
@@ -250,11 +252,10 @@ class _HomeScreenState extends State<HomeScreen> {
           // 알림 버튼
           Consumer<NotificationProvider>(
             builder: (context, notificationProvider, _) {
-              final notifications = notificationProvider.notifications;
               final unreadCount = notificationProvider.unreadCount;
 
               return GestureDetector(
-                onTap: () => NotificationModal.show(context, notifications),
+                onTap: () => NotificationModal.show(context),
                 child: Container(
                   width: 44,
                   height: 44,

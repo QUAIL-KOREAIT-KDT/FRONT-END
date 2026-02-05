@@ -10,7 +10,9 @@ import '../../providers/notification_provider.dart';
 import '../diagnosis_result_screen.dart' show RagSolution;
 
 class MypageScreen extends StatefulWidget {
-  const MypageScreen({super.key});
+  final bool resetFilter;
+
+  const MypageScreen({super.key, this.resetFilter = false});
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
@@ -19,7 +21,13 @@ class MypageScreen extends StatefulWidget {
 class _MypageScreenState extends State<MypageScreen> {
   // 필터 선택
   String _selectedFilter = '전체';
-  final List<String> _filters = ['전체', '창문', '벽지', '주방', '욕실'];
+  final List<String> _filters = ['전체', '창문', '벽지', '주방', '욕실', '음식', '기타'];
+
+  // 필터 탭 스크롤 컨트롤러
+  final ScrollController _filterScrollController = ScrollController();
+
+  // 기록 리스트 스크롤 컨트롤러
+  final ScrollController _recordListScrollController = ScrollController();
 
   // API 서비스
   final MyPageService _myPageService = MyPageService();
@@ -38,6 +46,32 @@ class _MypageScreenState extends State<MypageScreen> {
       context.read<UserProvider>().loadUser();
       _loadDiagnosisHistory();
     });
+  }
+
+  @override
+  void dispose() {
+    _filterScrollController.dispose();
+    _recordListScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MypageScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 탭 전환으로 다시 표시될 때 필터 및 스크롤 위치 초기화
+    if (widget.resetFilter && !oldWidget.resetFilter) {
+      setState(() {
+        _selectedFilter = '전체';
+      });
+      // 필터 스크롤 위치도 초기화
+      if (_filterScrollController.hasClients) {
+        _filterScrollController.jumpTo(0);
+      }
+      // 기록 리스트 스크롤 위치도 초기화
+      if (_recordListScrollController.hasClients) {
+        _recordListScrollController.jumpTo(0);
+      }
+    }
   }
 
   Future<void> _loadDiagnosisHistory() async {
@@ -70,7 +104,27 @@ class _MypageScreenState extends State<MypageScreen> {
     '벽지': 'wallpaper',
     '주방': 'kitchen',
     '욕실': 'bathroom',
+    '음식': 'food',
+    '기타': 'living_room',
   };
+
+  /// 곰팡이 결과 코드 → 한글명 매핑
+  static String getMoldResultName(String result) {
+    switch (result.toUpperCase()) {
+      case 'G1':
+        return '검은곰팡이';
+      case 'G2':
+        return '푸른/초록 곰팡이';
+      case 'G3':
+        return '하얀 곰팡이 / 백화현상';
+      case 'G4':
+        return '붉은 곰팡이 / 박테리아';
+      case 'UNCLASSIFIED':
+        return '불확실';
+      default:
+        return result.isNotEmpty ? result : '불확실';
+    }
+  }
 
   List<DiagnosisThumbnail> get _filteredRecords {
     if (_selectedFilter == '전체') return _diagnosisRecords;
@@ -159,19 +213,32 @@ class _MypageScreenState extends State<MypageScreen> {
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '👤',
-            style: TextStyle(fontSize: 24),
+          Row(
+            children: [
+              const Text(
+                '👤',
+                style: TextStyle(fontSize: 28),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                '마이페이지',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.gray800,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 6),
           const Text(
-            '마이페이지',
+            '진단 기록을 관리하세요',
             style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.gray800,
+              fontSize: 14,
+              color: AppTheme.gray400,
             ),
           ),
         ],
@@ -452,57 +519,53 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   Widget _buildFilterTabs() {
-    return Padding(
+    return SingleChildScrollView(
+      controller: _filterScrollController,
+      scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: _filters.asMap().entries.map((entry) {
           final index = entry.key;
           final filter = entry.value;
           final isSelected = _selectedFilter == filter;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: index < _filters.length - 1 ? 8 : 0,
-              ),
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedFilter = filter),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index < _filters.length - 1 ? 8 : 0,
+            ),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedFilter = filter),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.mintPrimary : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color:
+                        isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
                   ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.mintPrimary : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color:
-                          isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (filter != '전체') ...[
-                        Text(
-                          _getFilterIcon(filter),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(width: 2),
-                      ],
-                      Flexible(
-                        child: Text(
-                          filter,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: isSelected ? Colors.white : AppTheme.gray600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (filter != '전체') ...[
+                      Text(
+                        _getFilterIcon(filter),
+                        style: const TextStyle(fontSize: 14),
                       ),
+                      const SizedBox(width: 4),
                     ],
-                  ),
+                    Text(
+                      filter,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected ? Colors.white : AppTheme.gray600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -522,6 +585,10 @@ class _MypageScreenState extends State<MypageScreen> {
         return '🍳';
       case '욕실':
         return '🚿';
+      case '음식':
+        return '🍞';
+      case '기타':
+        return '📦';
       default:
         return '';
     }
@@ -597,6 +664,7 @@ class _MypageScreenState extends State<MypageScreen> {
       onRefresh: _loadDiagnosisHistory,
       color: AppTheme.mintPrimary,
       child: ListView.builder(
+        controller: _recordListScrollController,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _filteredRecords.length,
         itemBuilder: (context, index) {
@@ -655,14 +723,17 @@ class _MypageScreenState extends State<MypageScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        record.result.isNotEmpty
-                            ? record.result
-                            : '진단 기록 #${record.id}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.gray800,
+                      Flexible(
+                        child: Text(
+                          record.result.isNotEmpty
+                              ? getMoldResultName(record.result)
+                              : '진단 기록 #${record.id}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.gray800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (record.result.isNotEmpty &&
@@ -743,34 +814,33 @@ class _MypageScreenState extends State<MypageScreen> {
                       ),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Text('📋', style: TextStyle(fontSize: 24)),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '진단 결과: ${detail.result}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.gray800,
-                                  ),
+                        const Text('📋', style: TextStyle(fontSize: 24)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '진단 결과: ${getMoldResultName(detail.result)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.gray800,
                                 ),
-                                Text(
-                                  '${detail.locationKorean} · ${detail.formattedDate}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.gray500,
-                                  ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${detail.locationKorean} · ${detail.formattedDate}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppTheme.gray500,
                                 ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: Container(
@@ -790,63 +860,128 @@ class _MypageScreenState extends State<MypageScreen> {
                     ),
                   ),
 
-                  // 신뢰도 배지
-                  Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: detail.confidencePercent >= 80
-                          ? AppTheme.danger.withOpacity(0.1)
-                          : detail.confidencePercent >= 60
-                              ? AppTheme.warning.withOpacity(0.1)
-                              : AppTheme.mintPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: detail.confidencePercent >= 80
-                            ? AppTheme.danger.withOpacity(0.3)
-                            : detail.confidencePercent >= 60
-                                ? AppTheme.warning.withOpacity(0.3)
-                                : AppTheme.mintPrimary.withOpacity(0.3),
+                  // 사용자가 찍은 이미지 표시 (고정 영역)
+                  if (detail.imagePath.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.gray200),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.network(
+                          detail.imagePath,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: AppTheme.mintPrimary,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppTheme.gray100,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('🦠', style: TextStyle(fontSize: 48)),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      '이미지를 불러올 수 없습니다',
+                                      style: TextStyle(
+                                        color: AppTheme.gray400,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.analytics_rounded,
-                          color: detail.confidencePercent >= 80
-                              ? AppTheme.danger
-                              : detail.confidencePercent >= 60
-                                  ? AppTheme.warning
-                                  : AppTheme.mintPrimary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '신뢰도: ${detail.confidencePercent}%',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: detail.confidencePercent >= 80
-                                ? AppTheme.danger
-                                : detail.confidencePercent >= 60
-                                    ? AppTheme.warning
-                                    : AppTheme.mintPrimary,
-                          ),
-                        ),
-                      ],
+
+                  // 드래그 인디케이터
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
 
-                  // 스크롤 가능한 내용
+                  // 스크롤 가능한 내용 (신뢰도 포함)
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 신뢰도 배지 (높을수록 초록색, 낮을수록 빨간색)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: detail.confidencePercent >= 80
+                                  ? Colors.green.withOpacity(0.1)
+                                  : detail.confidencePercent >= 60
+                                      ? AppTheme.warning.withOpacity(0.1)
+                                      : AppTheme.danger.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: detail.confidencePercent >= 80
+                                    ? Colors.green.withOpacity(0.3)
+                                    : detail.confidencePercent >= 60
+                                        ? AppTheme.warning.withOpacity(0.3)
+                                        : AppTheme.danger.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.analytics_rounded,
+                                  color: detail.confidencePercent >= 80
+                                      ? Colors.green
+                                      : detail.confidencePercent >= 60
+                                          ? AppTheme.warning
+                                          : AppTheme.danger,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '신뢰도: ${detail.confidence.toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: detail.confidencePercent >= 80
+                                        ? Colors.green
+                                        : detail.confidencePercent >= 60
+                                            ? AppTheme.warning
+                                            : AppTheme.danger,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                           // 🔬 진단 결과
                           if (ragSolution.diagnosis.isNotEmpty) ...[
                             _buildSectionTitle('🔬', '진단 결과'),

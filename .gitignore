@@ -35,6 +35,16 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Pub dependencies (선택사항: 앱 프로젝트에서는 포함 권장, 패키지는 제외 권장)
+# pubspec.lock
+
+# 자동 생성된 파일
+*.g.dart
+*.freezed.dart
+*.config.dart
+generated_plugin_registrant.dart
+.flutter-plugins-dependencies
+
 # Symbolication related
 app.*.symbols
 

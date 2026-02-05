@@ -106,15 +106,32 @@ class NotificationProvider with ChangeNotifier {
   }
 
   /// 알림 삭제
-  Future<void> deleteNotification(String notificationId) async {
+  Future<bool> deleteNotification(String notificationId) async {
     try {
       await _apiService.dio.delete('/notifications/$notificationId');
 
       _notifications.removeWhere((n) => n.id == notificationId);
       _updateUnreadCount();
       notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('❌ 알림 삭제 실패: $e');
+      return false;
+    }
+  }
+
+  /// 모든 알림 삭제
+  Future<bool> deleteAllNotifications() async {
+    try {
+      await _apiService.dio.delete('/notifications/delete-all');
+
+      _notifications.clear();
+      _unreadCount = 0;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ 전체 알림 삭제 실패: $e');
+      return false;
     }
   }
 

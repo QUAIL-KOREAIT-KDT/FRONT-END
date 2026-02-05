@@ -1,9 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../services/api_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notificationEnabled = true;
+  bool _isLoadingNotification = true;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  /// 알림 설정 조회
+  Future<void> _loadNotificationSettings() async {
+    try {
+      final response = await _apiService.dio.get('/notifications/settings');
+      if (mounted) {
+        setState(() {
+          _notificationEnabled = response.data['notification_enabled'] ?? true;
+          _isLoadingNotification = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[Settings] 알림 설정 조회 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingNotification = false;
+        });
+      }
+    }
+  }
+
+  /// 알림 설정 변경
+  Future<void> _updateNotificationSettings(bool enabled) async {
+    setState(() {
+      _notificationEnabled = enabled;
+    });
+
+    try {
+      await _apiService.dio.put('/notifications/settings', data: {
+        'notification_enabled': enabled,
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(enabled ? '알림이 활성화되었습니다.' : '알림이 비활성화되었습니다.'),
+            backgroundColor: AppTheme.mintPrimary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      debugPrint('[Settings] 알림 설정 변경 실패: $e');
+      // 실패 시 원래 상태로 롤백
+      if (mounted) {
+        setState(() {
+          _notificationEnabled = !enabled;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('알림 설정 변경에 실패했습니다.'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +98,7 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     // 알림 섹션
                     _buildSectionTitle('알림'),
-                    _buildSettingItem(
-                      icon: Icons.notifications_outlined,
-                      title: '알림 설정',
-                      onTap: () {},
-                    ),
+                    _buildNotificationToggleItem(),
 
                     const SizedBox(height: 24),
 
@@ -117,6 +187,73 @@ class SettingsScreen extends StatelessWidget {
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: AppTheme.gray400,
+        ),
+      ),
+    );
+  }
+
+  /// 알림 설정 토글 아이템
+  Widget _buildNotificationToggleItem() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: AppTheme.gray100,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.notifications_outlined,
+                size: 24,
+                color: AppTheme.gray600,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '알림 수신',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.gray800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _notificationEnabled
+                          ? '곰팡이 예방 알림을 받습니다'
+                          : '알림이 꺼져있습니다',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.gray400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isLoadingNotification)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.mintPrimary,
+                  ),
+                )
+              else
+                Switch(
+                  value: _notificationEnabled,
+                  onChanged: _updateNotificationSettings,
+                  activeColor: AppTheme.mintPrimary,
+                  activeTrackColor: AppTheme.mintLight,
+                  inactiveThumbColor: AppTheme.gray400,
+                  inactiveTrackColor: AppTheme.gray200,
+                ),
+            ],
+          ),
         ),
       ),
     );

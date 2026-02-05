@@ -25,6 +25,8 @@ dependencies:
   # 이미지 관련
   image_picker: ^1.1.2 # 카메라/갤러리 이미지 선택
   cached_network_image: ^3.3.1 # 이미지 캐싱
+  camera: ^0.10.5+9 # 카메라 프리뷰 (가이드 오버레이용)
+  image: ^4.1.7 # 이미지 크로핑
 
   # UI 관련
   flutter_svg: ^2.0.10+1 # SVG 이미지 지원
@@ -53,6 +55,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1 # 앱 아이콘 자동 생성
+  flutter_native_splash: ^2.4.0 # 스플래시 화면 자동 설정
 
 flutter:
   uses-material-design: true
@@ -64,3 +68,31 @@ flutter:
     - assets/icons/
     - assets/animations/
     - assets/game/
+
+# 앱 아이콘 설정
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/icons/app_icon.png'
+  # Android Adaptive Icon (이미지가 잘리지 않도록 여백 설정)
+  adaptive_icon_background: '#FFFFFF'
+  adaptive_icon_foreground: 'assets/icons/app_icon.png'
+  # iOS는 이미지 그대로 사용 (잘리지 않음)
+  remove_alpha_ios: true # App Store 정책 준수
+
+# 스플래시 화면 설정
+flutter_native_splash:
+  color: '#FFFFFF' # 배경색
+  image: assets/icons/splash_logo.png
+  android: true
+  ios: true
+  # 이미지 크기 축소 (잘림 방지)
+  android_gravity: center
+  ios_content_mode: center
+  # 이미지를 화면의 25%로 축소
+  fullscreen: true
+  # Android 12+ 지원
+  android_12:
+    image: assets/icons/splash_logo.png
+    color: '#FFFFFF'
+    icon_background_color: '#FFFFFF'

@@ -190,7 +190,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '신뢰도 ${diagnosis.confidencePercent}%',
+                          '신뢰도 ${diagnosis.confidence.toStringAsFixed(1)}%',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -435,25 +435,19 @@ class DiagnosisResultScreen extends StatelessWidget {
   }
 
   String _getGradeName(String grade) {
-    switch (grade) {
+    switch (grade.toUpperCase()) {
       case 'G1':
-        return '검은 곰팡이';
+        return '검은곰팡이';
       case 'G2':
-        return '푸른 곰팡이';
+        return '푸른/초록 곰팡이';
       case 'G3':
-        return '흰 곰팡이';
+        return '하얀 곰팡이 / 백화현상';
       case 'G4':
-        return '붉은 물때';
-      case 'G5':
-        return '녹색 곰팡이';
-      case 'G6':
-        return '검은 얼룩 곰팡이';
-      case 'G7':
-        return '회색 곰팡이';
-      case 'G8':
-        return '노란 곰팡이';
+        return '붉은 곰팡이 / 박테리아';
+      case 'UNCLASSIFIED':
+        return '불확실';
       default:
-        return '미확인 곰팡이';
+        return '불확실';
     }
   }
 

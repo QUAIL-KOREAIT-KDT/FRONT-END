@@ -114,9 +114,19 @@ class AuthProvider extends ChangeNotifier {
       // [백엔드 연동] 카카오 토큰으로 백엔드 로그인 → JWT 발급
       final authResponse = await _authService.loginWithKakao(token.accessToken);
 
+      // 카카오 사용자 정보 가져오기 (이메일 등)
+      String? kakaoEmail;
+      try {
+        final kakaoUser = await UserApi.instance.me();
+        kakaoEmail = kakaoUser.kakaoAccount?.email;
+      } catch (e) {
+        debugPrint('[AuthProvider] 카카오 사용자 정보 조회 실패: $e');
+      }
+
       // 사용자 정보 설정
       _user = UserModel(
         id: authResponse.userId.toString(),
+        email: kakaoEmail, // 카카오 이메일 저장
         nickname: authResponse.nickname ?? '사용자',
         isOnboardingCompleted: !authResponse.isNewUser,
       );

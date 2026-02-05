@@ -17,9 +17,6 @@ class DictionaryScreen extends StatefulWidget {
 }
 
 class _DictionaryScreenState extends State<DictionaryScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
   @override
   void initState() {
     super.initState();
@@ -27,23 +24,6 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DictionaryProvider>().loadDictionary();
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<MoldCategory> _filterCategories(List<MoldCategory> categories) {
-    if (_searchQuery.isEmpty) return categories;
-    return categories
-        .where((category) =>
-            category.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            category.description
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()))
-        .toList();
   }
 
   @override
@@ -55,9 +35,6 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           children: [
             // 헤더
             _buildHeader(context),
-
-            // 검색창
-            _buildSearchBar(),
 
             // 카테고리 그리드
             Expanded(
@@ -72,9 +49,9 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 타이틀
           Row(
             children: [
               const Text(
@@ -92,45 +69,15 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.gray100,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.gray200, width: 1),
-        ),
-        child: TextField(
-          controller: _searchController,
-          onChanged: (query) {
-            setState(() {
-              _searchQuery = query;
-            });
-          },
-          decoration: InputDecoration(
-            hintText: '곰팡이 종류 검색',
-            hintStyle: TextStyle(
+          const SizedBox(height: 6),
+          const Text(
+            '곰팡이에 대해 알아보세요',
+            style: TextStyle(
+              fontSize: 14,
               color: AppTheme.gray400,
-              fontSize: 16,
-            ),
-            prefixIcon: Icon(
-              Icons.search_rounded,
-              color: AppTheme.gray400,
-              size: 24,
-            ),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -167,8 +114,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           );
         }
 
-        final filteredList = _filterCategories(provider.categories);
-        return _buildCategoryGrid(filteredList);
+        return _buildCategoryGrid(provider.categories);
       },
     );
   }
@@ -177,7 +123,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(top: 16, bottom: 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 16,

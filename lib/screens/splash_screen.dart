@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../providers/auth_provider.dart';
@@ -20,6 +21,10 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
+    // 네이티브 스플래시 화면 제거
+    FlutterNativeSplash.remove();
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
