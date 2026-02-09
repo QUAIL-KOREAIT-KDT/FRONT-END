@@ -25,6 +25,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double _selectedHumidity = 50.0; // 평균 실내 습도
   int _selectedDirectionIndex = 0;
   bool _isBasement = false; // 반지하 여부
+  bool _isSubmitting = false; // 제출 중복 방지
+  bool _isSearchingAddress = false; // 주소 검색 중복 방지
 
   @override
   void dispose() {
@@ -35,6 +37,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // 온보딩 제출 (API 호출)
   Future<void> _submitOnboarding(BuildContext context) async {
+    if (_isSubmitting) return;
+
     final nickname = _nicknameController.text.trim();
     if (nickname.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -42,6 +46,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
+
+    setState(() => _isSubmitting = true);
 
     // 방향 변환: 북향 -> N, 남향 -> S, 기타 -> O
     final directions = ['N', 'S', 'O'];
@@ -64,6 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (success && mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } else if (mounted) {
+      setState(() => _isSubmitting = false);
       // 실패해도 일단 홈으로 이동 (더미 데이터 사용)
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('서버 연결 실패 - 나중에 다시 시도해주세요')),
@@ -238,7 +245,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () => _submitOnboarding(context),
+                    onPressed: _isSubmitting ? null : () => _submitOnboarding(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.mintPrimary,
                       foregroundColor: Colors.white,
@@ -392,11 +399,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   /// 카카오 우편번호 서비스를 이용한 주소 검색 (네이티브 전용)
   Future<void> _openAddressSearch() async {
-    final result = await address_search.openAddressSearch(context);
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _selectedLocation = result;
-      });
+    if (_isSearchingAddress) return;
+    setState(() => _isSearchingAddress = true);
+
+    try {
+      final result = await address_search.openAddressSearch(context);
+      if (result != null && result.isNotEmpty) {
+        setState(() {
+          _selectedLocation = result;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSearchingAddress = false);
+      }
     }
   }
 

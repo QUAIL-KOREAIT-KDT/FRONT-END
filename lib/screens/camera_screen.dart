@@ -19,6 +19,11 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _isInitialized = false;
   bool _isCapturing = false;
 
+  // 줌 관련
+  double _currentZoom = 1.0;
+  double _minZoom = 1.0;
+  double _maxZoom = 1.0;
+
   // 가이드 영역 비율 (화면 대비)
   static const double _guideRatio = 0.7;
 
@@ -53,6 +58,11 @@ class _CameraScreenState extends State<CameraScreen> {
       );
 
       await _controller!.initialize();
+
+      // 줌 범위 가져오기
+      _minZoom = await _controller!.getMinZoomLevel();
+      _maxZoom = await _controller!.getMaxZoomLevel();
+      _currentZoom = _minZoom;
 
       if (mounted) {
         setState(() {
@@ -431,13 +441,24 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  /// 줌 변경 핸들러
+  Future<void> _onZoomChanged(double value) async {
+    setState(() {
+      _currentZoom = value;
+    });
+    await _controller?.setZoomLevel(value);
+  }
+
   /// 하단 컨트롤
   Widget _buildBottomControls() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // 줌 슬라이더
+          if (_maxZoom > _minZoom) _buildZoomSlider(),
+          const SizedBox(height: 16),
           // 촬영 버튼
           GestureDetector(
             onTap: _isCapturing ? null : _captureAndCrop,
@@ -474,6 +495,64 @@ class _CameraScreenState extends State<CameraScreen> {
                         ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 줌 슬라이더 위젯
+  Widget _buildZoomSlider() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.zoom_out,
+            color: Colors.white70,
+            size: 18,
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                activeTrackColor: AppTheme.mintPrimary,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.white,
+                overlayColor: AppTheme.mintPrimary.withValues(alpha: 0.2),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 7,
+                ),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: _currentZoom,
+                min: _minZoom,
+                max: _maxZoom,
+                onChanged: _onZoomChanged,
+              ),
+            ),
+          ),
+          const Icon(
+            Icons.zoom_in,
+            color: Colors.white70,
+            size: 18,
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 40,
+            child: Text(
+              '${_currentZoom.toStringAsFixed(1)}x',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],

@@ -264,9 +264,6 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   }
 
   void _popTiles(Set<MoldTileModel> tiles) {
-    // 화면 흔들림
-    _shakeController.forward().then((_) => _shakeController.reverse());
-
     // 점수 계산
     final combo = _gameState.combo + 1;
     final score = GameLogic.calculateScore(tiles.length, combo);
@@ -286,8 +283,8 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
       );
     });
 
-    // 타일 제거
-    Future.delayed(const Duration(milliseconds: 200), () {
+    // 타일 제거 (낙하 애니메이션 완료 후)
+    Future.delayed(const Duration(milliseconds: 750), () {
       if (!mounted) return;
 
       final newBoard = List<List<MoldTileModel?>>.from(
@@ -350,57 +347,28 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // 앱의 primary 민트색 배경
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.mintLight.withOpacity(0.3),
-              AppTheme.mintPrimary.withOpacity(0.2),
-            ],
-          ),
-        ),
+        color: const Color(0xFFE8E8D0),
         child: SafeArea(
-          child: Row(
+          child: Column(
             children: [
-              // 왼쪽: 게임 보드
+              // 상단 바: 일시정지(좌), 타이머(중), 점수(우) - 높이 고정
+              _buildTopBar(),
+
+              // 게임 보드 - 상단 10, 좌우 5, 하단 10 패딩
               Expanded(
-                flex: 3,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 20), // 하단 마진 추가
-                    child: AnimatedBuilder(
-                      animation: _shakeAnimation,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(
-                            _shakeAnimation.value *
-                                (_shakeController.status ==
-                                        AnimationStatus.forward
-                                    ? 1
-                                    : -1),
-                            0,
-                          ),
-                          child: child,
-                        );
-                      },
-                      child: GameBoard(
-                        board: _gameState.board,
-                        selectedTiles: _gameState.selectedTiles,
-                        poppingTiles: _poppingTiles,
-                        currentSum: _gameState.selectedSum,
-                        onDragStart: _handleDragStart,
-                        onDragUpdate: _handleDragUpdate,
-                        onDragEnd: _handleDragEnd,
-                      ),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                  child: GameBoard(
+                    board: _gameState.board,
+                    selectedTiles: _gameState.selectedTiles,
+                    poppingTiles: _poppingTiles,
+                    currentSum: _gameState.selectedSum,
+                    onDragStart: _handleDragStart,
+                    onDragUpdate: _handleDragUpdate,
+                    onDragEnd: _handleDragEnd,
                   ),
                 ),
               ),
-
-              // 오른쪽: UI 패널
-              _buildRightPanel(),
             ],
           ),
         ),
@@ -408,129 +376,123 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
     );
   }
 
-  Widget _buildRightPanel() {
-    final timeColor = _gameState.remainingSeconds <= 30
-        ? const Color(0xFFFF6B6B)
-        : AppTheme.gray700;
+  Widget _buildTopBar() {
+    final timeProgress = _gameState.remainingSeconds / MoldGameState.totalTime;
+    final isLowTime = _gameState.remainingSeconds <= 30;
 
     return Container(
-      width: 140,
-      margin: const EdgeInsets.all(12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      height: 60, // 고정 높이
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 상단: 일시정지 버튼만
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: _pauseGame,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.pause_rounded, size: 20),
+          // 좌측: 일시정지 버튼
+          GestureDetector(
+            onTap: _pauseGame,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.85),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.pause_rounded,
+                  size: 20, color: AppTheme.gray700),
             ),
           ),
 
-          // 중앙: 타이머 + 점수
-          Column(
-            children: [
-              // 타이머
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _gameState.remainingSeconds <= 30
-                      ? const Color(0xFFFF6B6B).withOpacity(0.9)
-                      : Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.timer_outlined,
-                        color: _gameState.remainingSeconds <= 30
-                            ? Colors.white
-                            : timeColor,
-                        size: 24),
-                    const SizedBox(height: 4),
-                    Text(
-                      GameLogic.formatTime(_gameState.remainingSeconds),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: _gameState.remainingSeconds <= 30
-                            ? Colors.white
-                            : timeColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          const SizedBox(width: 16),
 
-              const SizedBox(height: 12),
-
-              // 점수 (아이콘 없이 간결하게)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'SCORE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.gray500,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      GameLogic.formatScore(_gameState.score),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.mintPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // 하단: 최고기록 (심플하게)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
+          // 중앙: 타이머
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 18,
+                  color: isLowTime ? const Color(0xFFFF6B6B) : AppTheme.gray600,
+                ),
+                const SizedBox(width: 6),
                 Text(
-                  'BEST',
+                  '${_gameState.remainingSeconds}',
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.gray500,
-                    letterSpacing: 1,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color:
+                        isLowTime ? const Color(0xFFFF6B6B) : AppTheme.gray700,
                   ),
                 ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 160,
+                  height: 12,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: timeProgress,
+                      backgroundColor: Colors.white.withOpacity(0.5),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isLowTime
+                            ? const Color(0xFFFF6B6B)
+                            : const Color(0xFFE8E052),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // 우측: Score + Best Score
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Score',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  GameLogic.formatScore(_gameState.score),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.gray800,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 18,
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  color: AppTheme.gray300,
+                ),
+                const Text(
+                  'Best',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray500,
+                  ),
+                ),
+                const SizedBox(width: 6),
                 Text(
                   GameLogic.formatScore(_highScore),
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.gray700,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mintPrimary,
                   ),
                 ),
               ],

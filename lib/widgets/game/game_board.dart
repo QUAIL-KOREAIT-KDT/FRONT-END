@@ -5,7 +5,7 @@ import '../../models/game/mold_tile_model.dart';
 import '../../models/game/mold_game_state.dart';
 import 'mold_tile.dart';
 
-/// 17x10 게임 보드 위젯
+/// 18x9 게임 보드 위젯
 class GameBoard extends StatefulWidget {
   final List<List<MoldTileModel?>> board;
   final Set<MoldTileModel> selectedTiles;
@@ -35,61 +35,89 @@ class _GameBoardState extends State<GameBoard> {
   int? _startCol;
   int? _endRow;
   int? _endCol;
-  double _tileSize = 32;
+  double _tileSize = 32; // 정사각형 타일 크기
+
+  static const double _spacing = 3.0; // 타일 간 간격
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 화면 크기에 맞게 타일 크기 계산 (패딩 없음)
-        final tileWidth = constraints.maxWidth / MoldGameState.cols;
-        final tileHeight = constraints.maxHeight / MoldGameState.rows;
-        _tileSize = tileWidth < tileHeight ? tileWidth : tileHeight;
+        // 정사각형 타일 크기 계산 (가로/세로 중 작은 쪽에 맞춤)
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
 
-        return GestureDetector(
-          onPanStart: _handlePanStart,
-          onPanUpdate: _handlePanUpdate,
-          onPanEnd: _handlePanEnd,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              children: [
-                // 격자판 - 좌측 상단 정렬 (터치 좌표 계산 정확도)
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(MoldGameState.rows, (row) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(MoldGameState.cols, (col) {
-                        final tile = widget.board[row][col];
-                        if (tile == null) {
-                          return SizedBox(
-                            width: _tileSize,
-                            height: _tileSize,
-                          );
-                        }
+        // 간격을 고려한 타일 크기 계산
+        final maxTileWidth =
+            (availableWidth - (_spacing * (MoldGameState.cols - 1))) /
+                MoldGameState.cols;
+        final maxTileHeight =
+            (availableHeight - (_spacing * (MoldGameState.rows - 1))) /
+                MoldGameState.rows;
 
-                        final isSelected = widget.selectedTiles.contains(tile);
-                        final isPopping = widget.poppingTiles.contains(tile);
+        // 정사각형 유지: 작은 쪽에 맞춤
+        _tileSize = maxTileWidth < maxTileHeight ? maxTileWidth : maxTileHeight;
 
-                        return AnimatedMoldTile(
-                          tile: tile,
-                          isSelected: isSelected,
-                          shouldPop: isPopping,
-                          size: _tileSize,
-                        );
-                      }),
-                    );
-                  }),
-                ),
+        // 보드 전체 크기 계산
+        final boardWidth = (_tileSize * MoldGameState.cols) +
+            (_spacing * (MoldGameState.cols - 1));
+        final boardHeight = (_tileSize * MoldGameState.rows) +
+            (_spacing * (MoldGameState.rows - 1));
 
-                // 선택 영역 표시
-                if (_startRow != null && _endRow != null)
-                  _buildSelectionOverlay(),
-              ],
+        return Center(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque, // 빈 영역도 터치 이벤트 받음
+            onPanStart: _handlePanStart,
+            onPanUpdate: _handlePanUpdate,
+            onPanEnd: _handlePanEnd,
+            child: SizedBox(
+              width: boardWidth,
+              height: boardHeight,
+              child: Stack(
+                children: [
+                  // 격자판 - 간격 포함
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(MoldGameState.rows, (row) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            bottom:
+                                row < MoldGameState.rows - 1 ? _spacing : 0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(MoldGameState.cols, (col) {
+                            final tile = widget.board[row][col];
+
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                  right: col < MoldGameState.cols - 1
+                                      ? _spacing
+                                      : 0),
+                              child: tile == null
+                                  ? SizedBox(
+                                      width: _tileSize, height: _tileSize)
+                                  : AnimatedMoldTile(
+                                      key: ValueKey(
+                                          tile.id), // Unique key로 깜빡임 방지
+                                      tile: tile,
+                                      isSelected:
+                                          widget.selectedTiles.contains(tile),
+                                      shouldPop:
+                                          widget.poppingTiles.contains(tile),
+                                      tileSize: _tileSize,
+                                    ),
+                            );
+                          }),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  // 선택 영역 표시
+                  if (_startRow != null && _endRow != null)
+                    _buildSelectionOverlay(),
+                ],
+              ),
             ),
           ),
         );
@@ -97,25 +125,28 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
+  /// 타일 인덱스에서 실제 픽셀 좌표 계산 (간격 포함)
+  double _colToX(int col) => col * (_tileSize + _spacing);
+  double _rowToY(int row) => row * (_tileSize + _spacing);
+
   Widget _buildSelectionOverlay() {
     final minRow = _startRow! < _endRow! ? _startRow! : _endRow!;
     final maxRow = _startRow! > _endRow! ? _startRow! : _endRow!;
     final minCol = _startCol! < _endCol! ? _startCol! : _endCol!;
     final maxCol = _startCol! > _endCol! ? _startCol! : _endCol!;
 
-    final left = minCol * _tileSize;
-    final top = minRow * _tileSize;
-    final width = (maxCol - minCol + 1) * _tileSize;
-    final height = (maxRow - minRow + 1) * _tileSize;
+    final left = _colToX(minCol);
+    final top = _rowToY(minRow);
+    final width = _colToX(maxCol) + _tileSize - left;
+    final height = _rowToY(maxRow) + _tileSize - top;
 
-    // 합계에 따른 테두리 색상
     Color borderColor;
     if (widget.currentSum == 10) {
-      borderColor = const Color(0xFFFF6B6B); // 빨간색 (터뜨릴 수 있음)
+      borderColor = const Color(0xFFFF6B6B);
     } else if (widget.currentSum > 10) {
-      borderColor = AppTheme.gray400; // 회색 (불가능)
+      borderColor = AppTheme.gray400;
     } else {
-      borderColor = AppTheme.mintPrimary; // 민트색 (계속 가능)
+      borderColor = AppTheme.mintPrimary;
     }
 
     return Positioned(
@@ -126,7 +157,7 @@ class _GameBoardState extends State<GameBoard> {
           width: width,
           height: height,
           decoration: BoxDecoration(
-            border: Border.all(color: borderColor, width: 3),
+            border: Border.all(color: borderColor, width: 2.5),
             borderRadius: BorderRadius.circular(8),
             color: borderColor.withOpacity(0.1),
           ),
@@ -137,14 +168,14 @@ class _GameBoardState extends State<GameBoard> {
 
   void _handlePanStart(DragStartDetails details) {
     final position = details.localPosition;
-    final row = (position.dy / _tileSize).floor();
-    final col = (position.dx / _tileSize).floor();
+    final col = _posToCol(position.dx);
+    final row = _posToRow(position.dy);
 
+    // 빈 타일이든 곰팡이 타일이든 보드 범위 안이면 드래그 시작 가능
     if (row >= 0 &&
         row < MoldGameState.rows &&
         col >= 0 &&
         col < MoldGameState.cols) {
-      // 터치 시 매우 짧은 진동
       HapticFeedback.lightImpact();
       setState(() {
         _startRow = row;
@@ -160,13 +191,10 @@ class _GameBoardState extends State<GameBoard> {
     if (_startRow == null) return;
 
     final position = details.localPosition;
-    final row =
-        (position.dy / _tileSize).floor().clamp(0, MoldGameState.rows - 1);
-    final col =
-        (position.dx / _tileSize).floor().clamp(0, MoldGameState.cols - 1);
+    final row = _posToRow(position.dy).clamp(0, MoldGameState.rows - 1);
+    final col = _posToCol(position.dx).clamp(0, MoldGameState.cols - 1);
 
     if (row != _endRow || col != _endCol) {
-      // 새 타일 선택 시 매우 짧은 진동
       HapticFeedback.lightImpact();
       setState(() {
         _endRow = row;
@@ -185,4 +213,8 @@ class _GameBoardState extends State<GameBoard> {
       _endCol = null;
     });
   }
+
+  /// 픽셀 좌표 → 타일 인덱스 (간격 포함)
+  int _posToCol(double x) => (x / (_tileSize + _spacing)).floor();
+  int _posToRow(double y) => (y / (_tileSize + _spacing)).floor();
 }

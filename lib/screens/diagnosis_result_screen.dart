@@ -363,7 +363,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                 ),
               ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 60),
           ],
         ),
       ),
@@ -376,7 +376,7 @@ class DiagnosisResultScreen extends StatelessWidget {
     required Widget child,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -20,6 +20,8 @@ class _MainScreenState extends State<MainScreen> {
   int _previousIndex = -1;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _homeScrollController = ScrollController();
+  final GlobalKey<DiagnosisScreenState> _diagnosisKey = GlobalKey<DiagnosisScreenState>();
+  bool _isDiagnosisAnalyzing = false;
 
   @override
   void initState() {
@@ -43,6 +45,10 @@ class _MainScreenState extends State<MainScreen> {
     if (index == 0) {
       _homeScrollController.jumpTo(0);
     }
+    // 진단 탭(인덱스 1)을 떠날 때 초기화
+    if (_currentIndex == 1 && index != 1) {
+      _diagnosisKey.currentState?.reset();
+    }
     setState(() {
       _previousIndex = _currentIndex;
       _currentIndex = index;
@@ -58,22 +64,39 @@ class _MainScreenState extends State<MainScreen> {
     // 마이페이지 탭(인덱스 3)으로 전환 시 필터 초기화
     final resetMypageFilter = _currentIndex == 3 && _previousIndex != 3;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: const HamburgerMenu(),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          HomeScreenContent(onMenuTap: openDrawer, scrollController: _homeScrollController),
-          const DiagnosisScreen(),
-          const DictionaryScreen(),
-          MypageScreen(resetFilter: resetMypageFilter),
-        ],
-      ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-      ),
+    return Stack(
+      children: [
+        Scaffold(
+          key: _scaffoldKey,
+          drawer: const HamburgerMenu(),
+          body: IndexedStack(
+            index: _currentIndex,
+            children: [
+              HomeScreenContent(onMenuTap: openDrawer, scrollController: _homeScrollController),
+              DiagnosisScreen(
+                key: _diagnosisKey,
+                onAnalyzingChanged: (analyzing) {
+                  setState(() => _isDiagnosisAnalyzing = analyzing);
+                },
+              ),
+              const DictionaryScreen(),
+              MypageScreen(resetFilter: resetMypageFilter),
+            ],
+          ),
+          bottomNavigationBar: BottomNavBar(
+            currentIndex: _currentIndex,
+            onTap: _onTabTapped,
+          ),
+        ),
+        // 진단 분석 중 전체 화면 차단 (네비게이션 바 포함)
+        if (_isDiagnosisAnalyzing)
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: false,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+      ],
     );
   }
 }

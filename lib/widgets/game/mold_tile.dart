@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/game/mold_tile_model.dart';
@@ -6,104 +7,82 @@ import '../../models/game/mold_tile_model.dart';
 class MoldTile extends StatelessWidget {
   final MoldTileModel tile;
   final bool isSelected;
-  final double size;
+  final double tileSize; // 정사각형 크기
   final VoidCallback? onTap;
 
   const MoldTile({
     super.key,
     required this.tile,
     this.isSelected = false,
-    this.size = 32,
+    this.tileSize = 32,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     if (tile.isRemoved) {
-      // 제거된 타일은 빈 공간
-      return SizedBox(width: size, height: size);
+      return SizedBox(width: tileSize, height: tileSize);
     }
 
-    // ========================================
-    // 🔧 곰팡이 크기 설정 (모든 숫자 동일 크기)
-    // ========================================
-    // 기본 크기 비율 (0.0 ~ 1.0, 타일 대비 곰팡이 크기)
-    const double moldSizeRatio = 0.80; // ← 곰팡이 크기 조절
-    // 선택 시 확대 비율
-    const double selectedScale = 1.1; // ← 선택 시 확대 비율
-
-    final double baseSize = size * moldSizeRatio;
-    final double displaySize = isSelected ? baseSize * selectedScale : baseSize;
+    final fontSize = tileSize * 0.45;
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          width: displaySize,
-          height: displaySize,
-          decoration: BoxDecoration(
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppTheme.mintPrimary.withOpacity(0.5),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // 곰팡이 이미지 (mold.png 하나만 사용)
-              Image.asset(
+      child: SizedBox(
+        width: tileSize,
+        height: tileSize,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              decoration: BoxDecoration(
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.mintPrimary.withOpacity(0.5),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Image.asset(
                 'assets/game/mold.png',
-                width: displaySize,
-                height: displaySize,
-                fit: BoxFit.contain,
+                width: tileSize,
+                height: tileSize,
+                fit: BoxFit.contain, // contain으로 정원형 유지
               ),
-              // ========================================
-              // 🔧 숫자 오버레이 설정
-              // ========================================
-              Positioned(
-                // 숫자 위치 조절 (bottom: 0 이면 맨 아래, 숫자를 높이려면 값 증가)
-                bottom: displaySize * 0.22, // ← 숫자 세로 위치 (0.0 ~ 1.0)
-                child: Text(
-                  tile.value.toString(),
-                  style: TextStyle(
-                    // ========================================
-                    // 🔧 숫자 크기 조절
-                    // ========================================
-                    fontSize: displaySize * 0.45, // ← 숫자 크기 (곰팡이 대비 비율)
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black54,
-                        blurRadius: 2,
-                        offset: Offset(1, 1),
-                      ),
-                    ],
+            ),
+            Text(
+              tile.value.toString(),
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 2,
+                    offset: Offset(1, 1),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// 터지는 애니메이션이 적용된 곰팡이 타일 (떨어지는 효과)
+/// 나뭇잎 떨어지기 애니메이션이 적용된 곰팡이 타일
+/// - Transform.translate/rotate만 사용 (레이아웃 재계산 없음)
+/// - 좌우 흔들림(wobble) + 가속 낙하(fall) + 페이드아웃(fade)
 class AnimatedMoldTile extends StatefulWidget {
   final MoldTileModel tile;
   final bool isSelected;
-  final double size;
+  final double tileSize; // 정사각형 크기
   final bool shouldPop;
   final VoidCallback? onPopComplete;
 
@@ -111,7 +90,7 @@ class AnimatedMoldTile extends StatefulWidget {
     super.key,
     required this.tile,
     this.isSelected = false,
-    this.size = 32,
+    this.tileSize = 32,
     this.shouldPop = false,
     this.onPopComplete,
   });
@@ -124,41 +103,69 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fallAnimation;
+  late Animation<double> _wobbleAnimation;
   late Animation<double> _opacityAnimation;
-  late Animation<double> _bounceAnimation;
+  late Animation<double> _horizontalDriftAnimation;
+
+  // 깜빡임 방지: 애니메이션 완료 상태 추적
+  bool _isAnimationCompleted = false;
+
+  // 각 타일마다 랜덤한 방향/세기로 떨어지도록
+  late final double _wobbleDirection; // 1.0 or -1.0
+  late final double _driftAmount; // 수평 이동량
 
   @override
   void initState() {
     super.initState();
+    final rng = Random();
+    _wobbleDirection = rng.nextBool() ? 1.0 : -1.0;
+    _driftAmount = (rng.nextDouble() * 20 - 10); // -10 ~ +10px
+
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 600), // 떨어지는 시간
+      duration: const Duration(milliseconds: 700),
       vsync: this,
     );
 
-    // 통통 튀면서 아래로 떨어지는 애니메이션
-    _bounceAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0, end: -15)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 15,
+    // 가속도 붙으며 아래로 떨어짐 (0 → 120px)
+    _fallAnimation = Tween<double>(begin: 0, end: 120).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInQuad, // 가속
       ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: -15, end: 80)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 85,
-      ),
-    ]).animate(_controller);
+    );
 
-    // 크기가 줄어들면서 사라짐
+    // 좌우 흔들림 (사인 웨이브 2회전, ±15도)
+    _wobbleAnimation = Tween<double>(begin: 0, end: 4 * pi).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.linear,
+      ),
+    );
+
+    // 수평 드리프트 (살짝 옆으로 밀림)
+    _horizontalDriftAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // 페이드 아웃 (후반부에 빠르게)
     _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+        curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
       ),
     );
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
+        // 애니메이션 완료 상태 저장 (깜빡임 방지)
+        if (mounted) {
+          setState(() {
+            _isAnimationCompleted = true;
+          });
+        }
         widget.onPopComplete?.call();
       }
     });
@@ -168,7 +175,14 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
   void didUpdateWidget(AnimatedMoldTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.shouldPop && !oldWidget.shouldPop) {
-      _controller.forward();
+      _isAnimationCompleted = false;
+      _controller.forward(from: 0);
+    }
+    // 새 게임 시작 시: 다른 타일이 같은 key로 들어오면 상태 리셋
+    if (oldWidget.tile != widget.tile ||
+        (!widget.tile.isRemoved && _isAnimationCompleted)) {
+      _isAnimationCompleted = false;
+      _controller.reset();
     }
   }
 
@@ -180,29 +194,40 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
 
   @override
   Widget build(BuildContext context) {
+    // 제거된 타일이고 애니메이션 중이 아니면 빈 공간
     if (widget.tile.isRemoved && !widget.shouldPop) {
-      return SizedBox(width: widget.size, height: widget.size);
+      return SizedBox(width: widget.tileSize, height: widget.tileSize);
+    }
+
+    // 애니메이션 완료 후 깜빡임 방지: opacity 0 유지
+    if (_isAnimationCompleted) {
+      return SizedBox(width: widget.tileSize, height: widget.tileSize);
     }
 
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
         if (widget.shouldPop) {
-          // 터질 때: 통통 튀면서 아래로 떨어짐 (숫자 없이 곰팡이만)
-          final displaySize = widget.size * 0.80;
-          return Transform.translate(
-            offset: Offset(0, _bounceAnimation.value),
-            child: Opacity(
-              opacity: _opacityAnimation.value,
-              child: SizedBox(
-                width: widget.size,
-                height: widget.size,
-                child: Center(
+          // 나뭇잎 떨어지기: translate + rotate + opacity
+          final wobbleAngle =
+              sin(_wobbleAnimation.value) * 0.26 * _wobbleDirection; // ±15도
+          final dx = _horizontalDriftAnimation.value * _driftAmount;
+          final dy = _fallAnimation.value;
+
+          return SizedBox(
+            width: widget.tileSize,
+            height: widget.tileSize,
+            child: Transform.translate(
+              offset: Offset(dx, dy),
+              child: Transform.rotate(
+                angle: wobbleAngle,
+                child: Opacity(
+                  opacity: _opacityAnimation.value.clamp(0.0, 1.0),
                   child: Image.asset(
                     'assets/game/mold.png',
-                    width: displaySize,
-                    height: displaySize,
-                    fit: BoxFit.contain,
+                    width: widget.tileSize,
+                    height: widget.tileSize,
+                    fit: BoxFit.contain, // contain으로 정원형 유지
                   ),
                 ),
               ),
@@ -212,7 +237,7 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
         return MoldTile(
           tile: widget.tile,
           isSelected: widget.isSelected,
-          size: widget.size,
+          tileSize: widget.tileSize,
         );
       },
     );

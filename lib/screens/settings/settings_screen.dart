@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../config/theme.dart';
-import '../../config/routes.dart';
 import '../../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -132,15 +131,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () {},
                     ),
 
-                    const SizedBox(height: 24),
-
-                    // 로그아웃
-                    _buildSettingItem(
-                      icon: Icons.logout_rounded,
-                      title: '로그아웃',
-                      titleColor: AppTheme.danger,
-                      onTap: () => _showLogoutDialog(context),
-                    ),
                   ],
                 ),
               ),
@@ -326,38 +316,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              '취소',
-              style: TextStyle(color: AppTheme.gray500),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.onboarding,
-                (route) => false,
-              );
-            },
-            child: Text(
-              '로그아웃',
-              style: TextStyle(color: AppTheme.danger),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

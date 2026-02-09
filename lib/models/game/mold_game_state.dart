@@ -10,7 +10,7 @@ enum GameStatus {
 
 /// 게임 전체 상태 모델
 class MoldGameState {
-  final List<List<MoldTileModel?>> board; // 17x10 격자
+  final List<List<MoldTileModel?>> board; // 18x9 격자
   final int score;
   final int combo;
   final int maxCombo;
@@ -20,9 +20,9 @@ class MoldGameState {
   final GameStatus status;
   final Set<MoldTileModel> selectedTiles; // 현재 선택된 타일들
 
-  static const int rows = 8;
-  static const int cols = 12;
-  static const int totalTime = 100; // 100초
+  static const int rows = 9;
+  static const int cols = 18;
+  static const int totalTime = 120; // 120초
 
   const MoldGameState({
     required this.board,

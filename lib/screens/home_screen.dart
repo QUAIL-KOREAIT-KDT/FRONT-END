@@ -70,6 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return 'assets/images/character/pang_low.png';
     } else if (_riskPercentage <= 60) {
       return 'assets/images/character/pang_middle.png';
+    } else if (_riskPercentage <= 90) {
+      return 'assets/images/character/pang_middle_high.png';
     } else {
       return 'assets/images/character/pang_high.png';
     }
@@ -385,121 +387,176 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 수직 바 게이지
   Widget _buildVerticalBarGauge(Color riskColor) {
-    return Column(
+    const double barHeight = 200;
+    const double barWidth = 40;
+    // 임계치 (30%, 60%, 90%)
+    const thresholds = [
+      (value: 30, color: AppTheme.safe),
+      (value: 60, color: AppTheme.caution),
+      (value: 90, color: AppTheme.warning),
+    ];
+
+    // 눈금 영역 너비 (바 우측에 표시)
+    const double tickWidth = 32;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 바 게이지
-        Container(
-          width: 40,
-          height: 200,
-          decoration: BoxDecoration(
-            color: AppTheme.gray100,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              // 배경 그라데이션 (위험도 구간 표시)
-              Container(
-                width: 40,
-                height: 200,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      AppTheme.safe.withOpacity(0.3),
-                      AppTheme.caution.withOpacity(0.3),
-                      AppTheme.warning.withOpacity(0.3),
-                      AppTheme.danger.withOpacity(0.3),
-                    ],
-                    stops: const [0.0, 0.3, 0.6, 1.0],
+        // 좌측: 게이지 바 + 텍스트 + 배지를 하나의 Column으로 중앙 정렬
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 바 게이지
+            Container(
+              width: barWidth,
+              height: barHeight,
+              decoration: BoxDecoration(
+                color: AppTheme.gray100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // 배경 그라데이션 (위험도 구간 표시)
+                  Container(
+                    width: barWidth,
+                    height: barHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          AppTheme.safe.withOpacity(0.3),
+                          AppTheme.caution.withOpacity(0.3),
+                          AppTheme.warning.withOpacity(0.3),
+                          AppTheme.danger.withOpacity(0.3),
+                        ],
+                        stops: const [0.0, 0.3, 0.6, 1.0],
+                      ),
+                    ),
                   ),
+
+                  // 채워진 게이지
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutCubic,
+                    width: barWidth,
+                    height: barHeight * (_riskPercentage / 100),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          riskColor.withOpacity(0.8),
+                          riskColor,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: riskColor.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 퍼센트 표시
+                  Positioned(
+                    bottom: 10,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        '$_riskPercentage%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: _riskPercentage > 20 ? Colors.white : riskColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 위험도 텍스트
+            Text(
+              '곰팡이',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray500,
+              ),
+            ),
+            Text(
+              '위험도',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray500,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // 퍼센트 배지
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: riskColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$_riskPercentage%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: riskColor,
                 ),
               ),
+            ),
+          ],
+        ),
 
-              // 채워진 게이지
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOutCubic,
-                width: 40,
-                height: 200 * (_riskPercentage / 100),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      riskColor.withOpacity(0.8),
-                      riskColor,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: riskColor.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, -2),
+        // 우측 눈금 표시 (바 게이지 높이에만 대응)
+        SizedBox(
+          height: barHeight,
+          width: tickWidth,
+          child: Stack(
+            children: thresholds.map((t) {
+              final bottomOffset = barHeight * (t.value / 100);
+              return Positioned(
+                bottom: bottomOffset - 6,
+                left: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 1.5,
+                      color: t.color.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${t.value}',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: t.color.withOpacity(0.8),
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              // 퍼센트 표시
-              Positioned(
-                bottom: 10,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
-                    '$_riskPercentage%',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: _riskPercentage > 20 ? Colors.white : riskColor,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 위험도 텍스트
-        Text(
-          '곰팡이',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.gray500,
-          ),
-        ),
-        Text(
-          '위험도',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.gray500,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        // 퍼센트 표시
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: riskColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            '$_riskPercentage%',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: riskColor,
-            ),
+              );
+            }).toList(),
           ),
         ),
       ],
@@ -647,6 +704,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final dateStr = '${now.month}월 ${now.day}일';
     final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final weekday = weekdays[now.weekday - 1];
+    // 기준 시간대 표시 (API에서 받아온 time 필드 사용)
+    final timeStr = weather?.time ?? '';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -676,7 +735,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text(
-                '$dateStr ${weekday}요일',
+                '$dateStr ${weekday}요일${timeStr.isNotEmpty ? ' $timeStr 기준' : ''}',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppTheme.gray400,
