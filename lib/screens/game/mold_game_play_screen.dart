@@ -23,6 +23,7 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   Timer? _timer;
   int? _startRow, _startCol;
   Set<MoldTileModel> _poppingTiles = {};
+  bool _isPopping = false; // 팝 애니메이션 진행 중 플래그
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   int _highScore = 0;
@@ -78,6 +79,7 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
         highScore: _highScore,
       );
       _poppingTiles = {};
+      _isPopping = false;
     });
 
     _startTimer();
@@ -252,7 +254,9 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
 
     final selectedTiles = _gameState.selectedTiles;
 
-    if (selectedTiles.length >= 2 && GameLogic.isSumTen(selectedTiles)) {
+    if (!_isPopping &&
+        selectedTiles.length >= 2 &&
+        GameLogic.isSumTen(selectedTiles)) {
       _popTiles(selectedTiles);
     }
 
@@ -264,6 +268,8 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   }
 
   void _popTiles(Set<MoldTileModel> tiles) {
+    _isPopping = true;
+
     // 점수 계산
     final combo = _gameState.combo + 1;
     final score = GameLogic.calculateScore(tiles.length, combo);
@@ -272,10 +278,18 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
     final newMaxCombo =
         combo > _gameState.maxCombo ? combo : _gameState.maxCombo;
 
-    // 팝 애니메이션 시작
+    // 보드에서 즉시 제거 마킹 + 팝 애니메이션 시작
+    final newBoard = List<List<MoldTileModel?>>.from(
+      _gameState.board.map((row) => List<MoldTileModel?>.from(row)),
+    );
+    for (final tile in tiles) {
+      newBoard[tile.row][tile.col] = tile.copyWith(isRemoved: true);
+    }
+
     setState(() {
       _poppingTiles = tiles;
       _gameState = _gameState.copyWith(
+        board: newBoard,
         score: newScore,
         combo: combo,
         maxCombo: newMaxCombo,
@@ -283,36 +297,28 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
       );
     });
 
-    // 타일 제거 (낙하 애니메이션 완료 후)
+    // 애니메이션 완료 후 정리
     Future.delayed(const Duration(milliseconds: 750), () {
       if (!mounted) return;
 
-      final newBoard = List<List<MoldTileModel?>>.from(
-        _gameState.board.map((row) => List<MoldTileModel?>.from(row)),
-      );
-
-      for (final tile in tiles) {
-        newBoard[tile.row][tile.col] = tile.copyWith(isRemoved: true);
-      }
-
       setState(() {
         _poppingTiles = {};
-        _gameState = _gameState.copyWith(board: newBoard);
+        _isPopping = false;
       });
 
       // 올클리어 체크
       if (_gameState.isAllCleared) {
-        final bonusScore = GameLogic.allClearBonus;
         setState(() {
           _gameState = _gameState.copyWith(
-            score: _gameState.score + bonusScore,
+            score: _gameState.score + GameLogic.allClearBonus,
           );
         });
         _endGame();
+        return;
       }
 
       // 더 이상 조합 불가능 체크
-      if (!GameLogic.hasValidCombination(newBoard)) {
+      if (!GameLogic.hasValidCombination(_gameState.board)) {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted && _gameState.status == GameStatus.playing) {
             _endGame();

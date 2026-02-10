@@ -179,45 +179,47 @@ class DictionarySubtypeScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 80,
+            SizedBox(
+              width: 100,
               height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: subType.gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(20),
-                ),
-              ),
               child: ClipRRect(
                 borderRadius: const BorderRadius.horizontal(
                   left: Radius.circular(20),
                 ),
-                child: imageUrl != null
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text('🦠', style: TextStyle(fontSize: 36)),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white.withOpacity(0.7),
-                              strokeWidth: 2,
-                            ),
-                          );
-                        },
-                      )
-                    : const Center(
-                        child: Text('🦠', style: TextStyle(fontSize: 36)),
-                      ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: subType.gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child:
+                                  Text('🦠', style: TextStyle(fontSize: 36)),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white.withOpacity(0.7),
+                                strokeWidth: 2,
+                              ),
+                            );
+                          },
+                        )
+                      : const Center(
+                          child: Text('🦠', style: TextStyle(fontSize: 36)),
+                        ),
+                ),
               ),
             ),
             Expanded(

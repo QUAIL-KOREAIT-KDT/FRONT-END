@@ -111,6 +111,8 @@ class _MypageScreenState extends State<MypageScreen> {
   /// 곰팡이 결과 코드 → 한글명 매핑
   static String getMoldResultName(String result) {
     switch (result.toUpperCase()) {
+      case 'G0':
+        return '곰팡이 미검출';
       case 'G1':
         return '검은곰팡이';
       case 'G2':
@@ -120,9 +122,9 @@ class _MypageScreenState extends State<MypageScreen> {
       case 'G4':
         return '붉은 곰팡이 / 박테리아';
       case 'UNCLASSIFIED':
-        return '불확실';
+        return '재진단 필요';
       default:
-        return result.isNotEmpty ? result : '불확실';
+        return result.isNotEmpty ? result : '재진단 필요';
     }
   }
 

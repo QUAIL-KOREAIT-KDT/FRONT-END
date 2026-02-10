@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/iot_provider.dart';
+import '../../models/iot_device.dart';
 
 class IotSettingsScreen extends StatefulWidget {
   const IotSettingsScreen({super.key});
@@ -9,21 +12,13 @@ class IotSettingsScreen extends StatefulWidget {
 }
 
 class _IotSettingsScreenState extends State<IotSettingsScreen> {
-  // 더미 연결된 기기 목록
-  final List<Map<String, dynamic>> _connectedDevices = [
-    {
-      'name': '거실 온습도계',
-      'type': 'sensor',
-      'status': 'connected',
-      'battery': 85,
-    },
-    {
-      'name': '침실 제습기',
-      'type': 'dehumidifier',
-      'status': 'connected',
-      'battery': null,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<IotProvider>().loadDevices();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,35 +27,24 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 헤더
             _buildHeader(context),
-
-            // 컨텐츠
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 연결된 기기
-                    _buildSectionTitle('연결된 기기'),
-                    if (_connectedDevices.isEmpty)
-                      _buildEmptyState()
-                    else
-                      ..._connectedDevices
-                          .map((device) => _buildDeviceCard(device)),
+              child: Consumer<IotProvider>(
+                builder: (context, iotProvider, child) {
+                  if (iotProvider.isLoading) {
+                    return _buildLoading();
+                  }
 
-                    const SizedBox(height: 32),
+                  if (!iotProvider.isMaster) {
+                    return _buildComingSoon();
+                  }
 
-                    // 새 기기 추가
-                    _buildAddDeviceButton(),
+                  if (iotProvider.errorMessage != null) {
+                    return _buildError(iotProvider.errorMessage!);
+                  }
 
-                    const SizedBox(height: 32),
-
-                    // 지원 기기 안내
-                    _buildSupportedDevices(),
-                  ],
-                ),
+                  return _buildDeviceList(iotProvider);
+                },
               ),
             ),
           ],
@@ -83,14 +67,14 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Row(
+          const Row(
             children: [
-              const Text(
+              Text(
                 '📡',
                 style: TextStyle(fontSize: 24),
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '스마트홈 연동',
                 style: TextStyle(
                   fontSize: 22,
@@ -100,6 +84,133 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: AppTheme.mintPrimary,
+          ),
+          SizedBox(height: 16),
+          Text(
+            '기기 정보를 불러오는 중...',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.gray400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComingSoon() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.mintLight,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.construction_rounded,
+                size: 40,
+                color: AppTheme.mintPrimary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '개발중',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '스마트홈 연동 기능은 현재 개발중입니다.\n추후 업데이트 예정입니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: AppTheme.gray400,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: AppTheme.gray400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<IotProvider>().loadDevices();
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('다시 시도'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.mintPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceList(IotProvider iotProvider) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('연결된 기기'),
+          if (iotProvider.devices.isEmpty)
+            _buildEmptyState()
+          else
+            ...iotProvider.devices.map((device) => _buildDeviceCard(device)),
+          const SizedBox(height: 32),
+          _buildSupportedDevices(),
         ],
       ),
     );
@@ -126,14 +237,14 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
         color: AppTheme.gray100,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Column(
+      child: const Column(
         children: [
           Icon(
             Icons.devices_outlined,
             size: 48,
             color: AppTheme.gray400,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             '연결된 기기가 없어요',
             style: TextStyle(
@@ -142,9 +253,9 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
               color: AppTheme.gray600,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
-            '스마트홈 기기를 연결하면\n더 정확한 곰팡이 위험도를 측정할 수 있어요',
+            'Smart Life 앱에 기기를 등록하면\n여기에서 제어할 수 있어요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -157,19 +268,21 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
     );
   }
 
-  Widget _buildDeviceCard(Map<String, dynamic> device) {
-    final isConnected = device['status'] == 'connected';
-
+  Widget _buildDeviceCard(IotDeviceModel device) {
     IconData iconData;
-    switch (device['type']) {
-      case 'sensor':
-        iconData = Icons.sensors_rounded;
-        break;
+    switch (device.type) {
       case 'dehumidifier':
         iconData = Icons.air_rounded;
         break;
+      case 'air_conditioner':
+        iconData = Icons.ac_unit_rounded;
+        break;
+      case 'fan':
+        iconData = Icons.wind_power_rounded;
+        break;
+      case 'plug':
       default:
-        iconData = Icons.devices_other_rounded;
+        iconData = Icons.power_rounded;
     }
 
     return Container(
@@ -181,7 +294,7 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
         border: Border.all(color: AppTheme.gray200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -194,12 +307,12 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isConnected ? AppTheme.mintLight : AppTheme.gray100,
+              color: device.isOnline ? AppTheme.mintLight : AppTheme.gray100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               iconData,
-              color: isConnected ? AppTheme.mintPrimary : AppTheme.gray400,
+              color: device.isOnline ? AppTheme.mintPrimary : AppTheme.gray400,
               size: 24,
             ),
           ),
@@ -210,7 +323,7 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  device['name'],
+                  device.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -224,81 +337,70 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: isConnected ? AppTheme.safe : AppTheme.gray400,
+                        color: device.isOnline
+                            ? AppTheme.safe
+                            : AppTheme.gray400,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      isConnected ? '연결됨' : '연결 끊김',
+                      device.isOnline ? '온라인' : '오프라인',
                       style: TextStyle(
                         fontSize: 13,
-                        color: isConnected ? AppTheme.safe : AppTheme.gray400,
+                        color: device.isOnline
+                            ? AppTheme.safe
+                            : AppTheme.gray400,
                       ),
                     ),
-                    if (device['battery'] != null) ...[
-                      const SizedBox(width: 12),
-                      Icon(
-                        Icons.battery_std_rounded,
-                        size: 14,
+                    const SizedBox(width: 12),
+                    Text(
+                      device.typeName,
+                      style: const TextStyle(
+                        fontSize: 13,
                         color: AppTheme.gray400,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${device['battery']}%',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.gray400,
-                        ),
-                      ),
-                    ],
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          // 더보기 버튼
-          IconButton(
-            onPressed: () => _showDeviceOptions(device),
-            icon: Icon(
-              Icons.more_vert_rounded,
-              color: AppTheme.gray400,
-            ),
+          // ON/OFF 스위치
+          Switch(
+            value: device.isOn,
+            onChanged: device.isOnline
+                ? (value) => _onToggleDevice(device, value)
+                : null,
+            activeThumbColor: AppTheme.mintPrimary,
+            activeTrackColor: AppTheme.mintLight2,
+            inactiveThumbColor: AppTheme.gray300,
+            inactiveTrackColor: AppTheme.gray200,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAddDeviceButton() {
-    return GestureDetector(
-      onTap: _showAddDeviceDialog,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.mintLight,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.mintPrimary.withOpacity(0.3)),
+  void _onToggleDevice(IotDeviceModel device, bool turnOn) async {
+    final iotProvider = context.read<IotProvider>();
+    final success = await iotProvider.controlDevice(device.id, turnOn);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? '${device.name}이(가) ${turnOn ? "켜졌" : "꺼졌"}습니다.'
+              : '기기 제어에 실패했습니다.',
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_circle_outline_rounded,
-              color: AppTheme.mintPrimary,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '새 기기 추가',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.mintPrimary,
-              ),
-            ),
-          ],
+        backgroundColor: success ? AppTheme.mintPrimary : AppTheme.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -322,16 +424,15 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildSupportItem('🌡️', '온습도 센서', 'Xiaomi, Aqara 등'),
-          _buildSupportItem('💨', '제습기', 'LG, 삼성, 위닉스 등'),
-          _buildSupportItem('🌬️', '환기 시스템', 'Samsung SmartThings'),
-          _buildSupportItem('📡', '공기질 측정기', 'Awair, Qingping 등'),
+          _buildSupportItem('🔌', '스마트 플러그', 'Tuya 호환 플러그'),
+          _buildSupportItem('💨', '제습기', '스마트 플러그로 제어'),
+          _buildSupportItem('🌀', '선풍기', '스마트 플러그로 제어'),
         ],
       ),
     );
   }
 
-  Widget _buildSupportItem(String emoji, String title, String brands) {
+  Widget _buildSupportItem(String emoji, String title, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -351,117 +452,14 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
                   ),
                 ),
                 Text(
-                  brands,
-                  style: TextStyle(
+                  description,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.gray400,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeviceOptions(Map<String, dynamic> device) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.gray300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              device['name'],
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.gray800,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildOptionItem(
-              icon: Icons.sync_rounded,
-              title: '다시 연결',
-              onTap: () => Navigator.pop(context),
-            ),
-            _buildOptionItem(
-              icon: Icons.edit_outlined,
-              title: '이름 변경',
-              onTap: () => Navigator.pop(context),
-            ),
-            _buildOptionItem(
-              icon: Icons.delete_outline_rounded,
-              title: '기기 삭제',
-              color: AppTheme.danger,
-              onTap: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionItem({
-    required IconData icon,
-    required String title,
-    Color? color,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? AppTheme.gray600),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          color: color ?? AppTheme.gray800,
-        ),
-      ),
-      onTap: onTap,
-    );
-  }
-
-  void _showAddDeviceDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('기기 추가'),
-        content: const Text('블루투스와 Wi-Fi를 켜고 기기를 검색합니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('기기를 검색중입니다...'),
-                  backgroundColor: AppTheme.mintPrimary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-              );
-            },
-            child: const Text('검색'),
           ),
         ],
       ),

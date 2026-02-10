@@ -174,15 +174,23 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
   @override
   void didUpdateWidget(AnimatedMoldTile oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // 새 게임 시작 감지: id는 같지만 실제 데이터가 다른 새 타일
+    final tileReplaced = oldWidget.tile.value != widget.tile.value ||
+        oldWidget.tile.row != widget.tile.row ||
+        oldWidget.tile.col != widget.tile.col ||
+        (oldWidget.tile.isRemoved && !widget.tile.isRemoved);
+
+    if (tileReplaced) {
+      _isAnimationCompleted = false;
+      _controller.reset();
+      return;
+    }
+
+    // 팝 애니메이션 시작
     if (widget.shouldPop && !oldWidget.shouldPop) {
       _isAnimationCompleted = false;
       _controller.forward(from: 0);
-    }
-    // 새 게임 시작 시: 다른 타일이 같은 key로 들어오면 상태 리셋
-    if (oldWidget.tile != widget.tile ||
-        (!widget.tile.isRemoved && _isAnimationCompleted)) {
-      _isAnimationCompleted = false;
-      _controller.reset();
     }
   }
 

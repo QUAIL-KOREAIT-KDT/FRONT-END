@@ -269,7 +269,9 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: category.gradientColors[0],
+                                color: category.gradientColors[0].computeLuminance() > 0.5
+                                    ? AppTheme.gray600
+                                    : category.gradientColors[0],
                               ),
                             ),
                           ),

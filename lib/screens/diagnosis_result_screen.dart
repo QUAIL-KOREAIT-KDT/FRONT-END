@@ -171,7 +171,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          diagnosis.result,
+                          _getGradeBadge(diagnosis.result),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -419,23 +419,43 @@ class DiagnosisResultScreen extends StatelessWidget {
   }
 
   Color _getGradeColor(String grade) {
-    switch (grade) {
+    switch (grade.toUpperCase()) {
+      case 'G0':
+        return AppTheme.safe;
       case 'G1':
       case 'G2':
-        return AppTheme.safe;
+        return AppTheme.caution;
       case 'G3':
       case 'G4':
-        return AppTheme.caution;
-      case 'G5':
-      case 'G6':
         return AppTheme.warning;
       default:
         return AppTheme.danger;
     }
   }
 
+  String _getGradeBadge(String grade) {
+    switch (grade.toUpperCase()) {
+      case 'G0':
+        return '안전';
+      case 'G1':
+        return '검은곰팡이';
+      case 'G2':
+        return '푸른곰팡이';
+      case 'G3':
+        return '흰곰팡이';
+      case 'G4':
+        return '붉은곰팡이';
+      case 'UNCLASSIFIED':
+        return '주의';
+      default:
+        return '주의';
+    }
+  }
+
   String _getGradeName(String grade) {
     switch (grade.toUpperCase()) {
+      case 'G0':
+        return '곰팡이 미검출';
       case 'G1':
         return '검은곰팡이';
       case 'G2':
@@ -445,9 +465,9 @@ class DiagnosisResultScreen extends StatelessWidget {
       case 'G4':
         return '붉은 곰팡이 / 박테리아';
       case 'UNCLASSIFIED':
-        return '불확실';
+        return '재진단 필요';
       default:
-        return '불확실';
+        return '재진단 필요';
     }
   }
 
