@@ -7,6 +7,7 @@ import 'api_service.dart';
 class DiagnosisThumbnail {
   final int id;
   final String imagePath;
+  final String? gradcamImagePath;
   final DateTime createdAt;
   final String result; // G1~G8 (백엔드가 목록에 포함시키면 사용)
   final String moldLocation; // 백엔드 enum 값
@@ -14,15 +15,20 @@ class DiagnosisThumbnail {
   DiagnosisThumbnail({
     required this.id,
     required this.imagePath,
+    this.gradcamImagePath,
     required this.createdAt,
     this.result = '',
     this.moldLocation = '',
   });
 
+  /// CAM 이미지가 있으면 CAM, 없으면 원본 이미지 표시
+  String get displayImagePath => gradcamImagePath ?? imagePath;
+
   factory DiagnosisThumbnail.fromJson(Map<String, dynamic> json) {
     return DiagnosisThumbnail(
       id: json['id'] ?? 0,
       imagePath: json['image_path'] ?? '',
+      gradcamImagePath: json['gradcam_image_path'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
@@ -59,9 +65,10 @@ class DiagnosisThumbnail {
 class DiagnosisDetail {
   final int id;
   final int userId;
-  final String result; // G1~G8
+  final String result; // G0~G4, UNCLASSIFIED
   final double confidence;
   final String imagePath;
+  final String? gradcamImagePath; // CAM 바운딩박스 이미지 S3 URL
   final String moldLocation;
   final DateTime createdAt;
   final String modelSolution;
@@ -72,6 +79,7 @@ class DiagnosisDetail {
     required this.result,
     required this.confidence,
     required this.imagePath,
+    this.gradcamImagePath,
     required this.moldLocation,
     required this.createdAt,
     required this.modelSolution,
@@ -84,6 +92,7 @@ class DiagnosisDetail {
       result: json['result'] ?? '',
       confidence: (json['confidence'] ?? 0).toDouble(),
       imagePath: json['image_path'] ?? '',
+      gradcamImagePath: json['gradcam_image_path'],
       moldLocation: json['mold_location'] ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -101,6 +110,9 @@ class DiagnosisDetail {
 
   /// 신뢰도 퍼센트
   int get confidencePercent => confidence.toInt();
+
+  /// CAM 이미지가 있으면 CAM, 없으면 원본 이미지 표시
+  String get displayImagePath => gradcamImagePath ?? imagePath;
 
   /// 장소 한글 변환
   String get locationKorean {

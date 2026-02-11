@@ -121,6 +121,8 @@ class _MypageScreenState extends State<MypageScreen> {
         return '하얀 곰팡이 / 백화현상';
       case 'G4':
         return '붉은 곰팡이 / 박테리아';
+      case 'MULTI':
+        return '복합 곰팡이';
       case 'UNCLASSIFIED':
         return '재진단 필요';
       default:
@@ -545,8 +547,7 @@ class _MypageScreenState extends State<MypageScreen> {
                   color: isSelected ? AppTheme.mintPrimary : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color:
-                        isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
+                    color: isSelected ? AppTheme.mintPrimary : AppTheme.gray200,
                   ),
                 ),
                 child: Row(
@@ -862,12 +863,12 @@ class _MypageScreenState extends State<MypageScreen> {
                     ),
                   ),
 
-                  // 사용자가 찍은 이미지 표시 (고정 영역)
-                  if (detail.imagePath.isNotEmpty)
+                  // 이미지 표시 (CAM 이미지 우선, 없으면 원본)
+                  if (detail.displayImagePath.isNotEmpty)
                     Container(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
-                      height: 180,
+                      height: 190,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
@@ -876,13 +877,14 @@ class _MypageScreenState extends State<MypageScreen> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(15),
                         child: Image.network(
-                          detail.imagePath,
+                          detail.displayImagePath,
                           fit: BoxFit.cover,
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
                                     ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
                                     : null,
@@ -1348,71 +1350,187 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   void _showDeleteConfirmDialog(DiagnosisThumbnail record) {
+    final moldName = getMoldResultName(record.result);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
-        title: const Text('기록 삭제'),
-        content: Text('진단 기록 #${record.id}을(를) 삭제하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              '취소',
-              style: TextStyle(color: AppTheme.gray500),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              // 다이얼로그 닫기 먼저
-              Navigator.pop(context);
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 경고 아이콘
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppTheme.danger.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: AppTheme.danger,
+                  size: 32,
+                ),
+              ),
 
-              // 로딩 오버레이 표시
-              setState(() => _isProcessing = true);
+              const SizedBox(height: 16),
 
-              final success = await _myPageService.deleteDiagnosis(record.id);
+              // 제목
+              const Text(
+                '기록을 삭제할까요?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.gray800,
+                ),
+              ),
 
-              // 로딩 오버레이 숨김
-              if (mounted) {
-                setState(() => _isProcessing = false);
+              const SizedBox(height: 8),
 
-                if (success) {
-                  // 목록에서 제거
-                  setState(() {
-                    _diagnosisRecords.removeWhere((r) => r.id == record.id);
-                  });
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(
-                      content: const Text('기록이 삭제되었습니다'),
-                      backgroundColor: AppTheme.mintPrimary,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+              // 대상 기록 정보
+              Text(
+                moldName,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray600,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 영구 삭제 경고 박스
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.danger.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.danger.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppTheme.danger,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '삭제된 기록은 복구할 수 없습니다.\n진단 이미지와 AI 분석 결과가 영구적으로 삭제됩니다.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.danger,
+                          height: 1.5,
+                        ),
                       ),
                     ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(
-                      content: const Text('삭제에 실패했습니다'),
-                      backgroundColor: AppTheme.danger,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 버튼
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: AppTheme.gray300),
+                      ),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.gray600,
+                        ),
                       ),
                     ),
-                  );
-                }
-              }
-            },
-            child: Text(
-              '삭제',
-              style: TextStyle(color: AppTheme.danger),
-            ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        setState(() => _isProcessing = true);
+
+                        final success =
+                            await _myPageService.deleteDiagnosis(record.id);
+
+                        if (mounted) {
+                          setState(() => _isProcessing = false);
+
+                          if (success) {
+                            setState(() {
+                              _diagnosisRecords
+                                  .removeWhere((r) => r.id == record.id);
+                            });
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: const Text('기록이 삭제되었습니다'),
+                                backgroundColor: AppTheme.mintPrimary,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: const Text('삭제에 실패했습니다'),
+                                backgroundColor: AppTheme.danger,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.danger,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        '영구 삭제',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

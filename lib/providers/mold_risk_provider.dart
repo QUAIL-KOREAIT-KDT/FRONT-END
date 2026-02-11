@@ -49,14 +49,14 @@ class MoldRiskProvider extends ChangeNotifier {
 
   // API 응답을 MoldRiskModel로 변환
   MoldRiskModel _convertToMoldRiskModel(HomeInfoResponse response) {
-    final riskInfo = response.riskInfo;
+    final currentRisk = response.currentRisk;
 
     // 위험도 레벨 및 퍼센트 결정
     String riskLevel;
     int riskPercentage;
 
-    if (riskInfo != null) {
-      riskPercentage = riskInfo.percentage;
+    if (currentRisk != null) {
+      riskPercentage = currentRisk.percentage;
 
       if (riskPercentage <= 20) {
         riskLevel = 'safe';
@@ -85,7 +85,7 @@ class MoldRiskProvider extends ChangeNotifier {
           ? firstVent.description
           : '$ventilationStart ~ $ventilationEnd 사이에 환기를 추천해요!';
     } else {
-      recommendation = riskInfo?.message ?? '환기 추천 정보가 없습니다.';
+      recommendation = currentRisk?.message ?? '환기 추천 정보가 없습니다.';
     }
 
     return MoldRiskModel(

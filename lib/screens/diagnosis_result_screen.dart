@@ -112,25 +112,25 @@ class DiagnosisResultScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 이미지 영역
+            // 이미지 영역 (CAM 이미지 우선, 없으면 원본)
             Container(
               margin: const EdgeInsets.all(20),
-              height: 180,
+              height: 280,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                image: diagnosis.imagePath.isNotEmpty
+                image: diagnosis.displayImagePath.isNotEmpty
                     ? DecorationImage(
-                        image: NetworkImage(diagnosis.imagePath),
+                        image: NetworkImage(diagnosis.displayImagePath),
                         fit: BoxFit.cover,
                       )
                     : null,
-                gradient: diagnosis.imagePath.isEmpty
+                gradient: diagnosis.displayImagePath.isEmpty
                     ? LinearGradient(
                         colors: [AppTheme.gray200, AppTheme.gray300],
                       )
                     : null,
               ),
-              child: diagnosis.imagePath.isEmpty
+              child: diagnosis.displayImagePath.isEmpty
                   ? const Center(
                       child: Text(
                         '분석된 이미지 영역',
@@ -427,6 +427,7 @@ class DiagnosisResultScreen extends StatelessWidget {
         return AppTheme.caution;
       case 'G3':
       case 'G4':
+      case 'MULTI':
         return AppTheme.warning;
       default:
         return AppTheme.danger;
@@ -445,6 +446,8 @@ class DiagnosisResultScreen extends StatelessWidget {
         return '흰곰팡이';
       case 'G4':
         return '붉은곰팡이';
+      case 'MULTI':
+        return '복합곰팡이';
       case 'UNCLASSIFIED':
         return '주의';
       default:
@@ -464,6 +467,8 @@ class DiagnosisResultScreen extends StatelessWidget {
         return '하얀 곰팡이 / 백화현상';
       case 'G4':
         return '붉은 곰팡이 / 박테리아';
+      case 'MULTI':
+        return '복합 곰팡이 검출';
       case 'UNCLASSIFIED':
         return '재진단 필요';
       default:

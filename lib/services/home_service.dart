@@ -53,26 +53,35 @@ class VentilationTime {
   }
 }
 
-/// 위험도 정보 모델
-class RiskInfo {
-  final double score;
-  final String level;
+/// 단일 시점 곰팡이 위험도 아이템 (백엔드 MoldRiskItem 대응)
+class MoldRiskItem {
+  final String time;      // "13:00"
+  final double score;     // 0.0 ~ 100.0
+  final String level;     // "SAFE" | "WARNING" | "DANGER"
+  final String type;      // "MAX" | "MIN" | "CURRENT"
   final String message;
-  final Map<String, dynamic>? details;
+  final double tempUsed;
+  final double humidUsed;
 
-  RiskInfo({
+  MoldRiskItem({
+    required this.time,
     required this.score,
     required this.level,
+    required this.type,
     required this.message,
-    this.details,
+    required this.tempUsed,
+    required this.humidUsed,
   });
 
-  factory RiskInfo.fromJson(Map<String, dynamic> json) {
-    return RiskInfo(
+  factory MoldRiskItem.fromJson(Map<String, dynamic> json) {
+    return MoldRiskItem(
+      time: json['time'] ?? '',
       score: (json['score'] ?? 0).toDouble(),
-      level: json['level'] ?? 'safe',
+      level: json['level'] ?? 'SAFE',
+      type: json['type'] ?? 'CURRENT',
       message: json['message'] ?? '',
-      details: json['details'],
+      tempUsed: (json['temp_used'] ?? 0).toDouble(),
+      humidUsed: (json['humid_used'] ?? 0).toDouble(),
     );
   }
 
@@ -85,13 +94,13 @@ class HomeInfoResponse {
   final String regionAddress;
   final List<WeatherDetail> currentWeather;
   final List<VentilationTime> ventilationTimes;
-  final RiskInfo? riskInfo;
+  final List<MoldRiskItem> riskForecast;
 
   HomeInfoResponse({
     required this.regionAddress,
     required this.currentWeather,
     required this.ventilationTimes,
-    this.riskInfo,
+    required this.riskForecast,
   });
 
   factory HomeInfoResponse.fromJson(Map<String, dynamic> json) {
@@ -105,11 +114,24 @@ class HomeInfoResponse {
               ?.map((e) => VentilationTime.fromJson(e))
               .toList() ??
           [],
-      riskInfo: json['risk_info'] != null
-          ? RiskInfo.fromJson(json['risk_info'])
-          : null,
+      riskForecast: (json['risk_forecast'] as List<dynamic>?)
+              ?.map((e) => MoldRiskItem.fromJson(e))
+              .toList() ??
+          [],
     );
   }
+
+  /// 실시간 위험도 (CURRENT)
+  MoldRiskItem? get currentRisk =>
+      riskForecast.where((e) => e.type == 'CURRENT').firstOrNull;
+
+  /// 당일 최고 위험도 (MAX)
+  MoldRiskItem? get maxRisk =>
+      riskForecast.where((e) => e.type == 'MAX').firstOrNull;
+
+  /// 당일 최저 위험도 (MIN)
+  MoldRiskItem? get minRisk =>
+      riskForecast.where((e) => e.type == 'MIN').firstOrNull;
 
   /// 현재 시간대의 날씨 정보
   WeatherDetail? get currentHourWeather {

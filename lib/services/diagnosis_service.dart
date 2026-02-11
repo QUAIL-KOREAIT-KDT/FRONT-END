@@ -23,9 +23,10 @@ const Map<String, String> locationToApiValue = {
 /// 진단 결과 응답 모델 (백엔드 DiagnosisResponse와 일치)
 class DiagnosisResponse {
   final int id;
-  final String result; // G1~G8
+  final String result; // G0~G4, UNCLASSIFIED
   final double confidence;
   final String imagePath;
+  final String? gradcamImagePath; // CAM 바운딩박스 이미지 S3 URL
   final String moldLocation;
   final DateTime createdAt;
   final String modelSolution;
@@ -35,6 +36,7 @@ class DiagnosisResponse {
     required this.result,
     required this.confidence,
     required this.imagePath,
+    this.gradcamImagePath,
     required this.moldLocation,
     required this.createdAt,
     required this.modelSolution,
@@ -46,6 +48,7 @@ class DiagnosisResponse {
       result: json['result'] ?? '',
       confidence: (json['confidence'] ?? 0).toDouble(),
       imagePath: json['image_path'] ?? '',
+      gradcamImagePath: json['gradcam_image_path'],
       moldLocation: json['mold_location'] ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -56,8 +59,11 @@ class DiagnosisResponse {
     );
   }
 
-  /// 곰팡이 등급 (G1~G8)
+  /// 곰팡이 등급
   String get grade => result;
+
+  /// CAM 이미지가 있으면 CAM, 없으면 원본 이미지 표시
+  String get displayImagePath => gradcamImagePath ?? imagePath;
 
   /// 신뢰도 퍼센트
   int get confidencePercent => confidence.toInt();

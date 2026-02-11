@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/user_service.dart';
+import '../../providers/user_provider.dart';
 
 class HamburgerMenu extends StatefulWidget {
   const HamburgerMenu({super.key});
@@ -16,12 +15,6 @@ class _HamburgerMenuState extends State<HamburgerMenu>
     with SingleTickerProviderStateMixin {
   late AnimationController _badgeAnimController;
   late Animation<double> _badgeGlowAnimation;
-
-  // 사용자 정보
-  String _nickname = '회원님';
-  String _email = '';
-  bool _isLoadingUser = true;
-  final UserService _userService = UserService();
 
   @override
   void initState() {
@@ -38,43 +31,10 @@ class _HamburgerMenuState extends State<HamburgerMenu>
       ),
     );
 
-    _loadUserInfo();
-  }
-
-  /// 사용자 정보 로드
-  Future<void> _loadUserInfo() async {
-    try {
-      // 1. AuthProvider에서 먼저 확인
-      final authProvider = context.read<AuthProvider>();
-      final user = authProvider.user;
-
-      if (user != null && user.nickname != null && user.nickname!.isNotEmpty) {
-        setState(() {
-          _nickname = user.nickname!;
-          _email = user.email ?? '';
-          _isLoadingUser = false;
-        });
-        return;
-      }
-
-      // 2. 백엔드 API에서 가져오기
-      final userResponse = await _userService.getMe();
-      if (mounted) {
-        setState(() {
-          _nickname = userResponse.nickname ?? '회원님';
-          // 백엔드에 이메일이 없으므로 카카오 ID 표시 또는 빈 문자열
-          _email = '';
-          _isLoadingUser = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('[HamburgerMenu] 사용자 정보 로드 실패: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingUser = false;
-        });
-      }
-    }
+    // UserProvider에서 닉네임 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserProvider>().loadUser();
+    });
   }
 
   @override
@@ -169,6 +129,9 @@ class _HamburgerMenuState extends State<HamburgerMenu>
   }
 
   Widget _buildProfileSection(BuildContext context) {
+    final userProvider = context.watch<UserProvider>();
+    final nickname = userProvider.user?.nickname ?? '회원님';
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -199,52 +162,14 @@ class _HamburgerMenuState extends State<HamburgerMenu>
           const SizedBox(width: 16),
           // 사용자 정보
           Expanded(
-            child: _isLoadingUser
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: AppTheme.gray200,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 120,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: AppTheme.gray100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_nickname}님',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.gray800,
-                        ),
-                      ),
-                      if (_email.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _email,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.gray400,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+            child: Text(
+              '$nickname님',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray800,
+              ),
+            ),
           ),
         ],
       ),
