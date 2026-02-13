@@ -55,7 +55,7 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
       child: Row(
         children: [
           IconButton(
@@ -67,24 +67,55 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          const Row(
-            children: [
-              Text(
-                '📡',
-                style: TextStyle(fontSize: 24),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '스마트홈 연동',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.gray800,
+          const Text(
+            '📡',
+            style: TextStyle(fontSize: 24),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            '스마트홈 연동',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.gray800,
+            ),
+          ),
+          const Spacer(),
+          Consumer<IotProvider>(
+            builder: (context, iotProvider, child) {
+              if (!iotProvider.isMaster || iotProvider.isLoading) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                onPressed: () => _onRefresh(context),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  color: AppTheme.gray600,
+                  size: 24,
                 ),
-              ),
-            ],
+                tooltip: '기기 새로고침',
+              );
+            },
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _onRefresh(BuildContext context) async {
+    final provider = context.read<IotProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    await provider.loadDevices();
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('기기 정보를 새로고침했습니다.'),
+        backgroundColor: AppTheme.mintPrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -199,19 +230,24 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
   }
 
   Widget _buildDeviceList(IotProvider iotProvider) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('연결된 기기'),
-          if (iotProvider.devices.isEmpty)
-            _buildEmptyState()
-          else
-            ...iotProvider.devices.map((device) => _buildDeviceCard(device)),
-          const SizedBox(height: 32),
-          _buildSupportedDevices(),
-        ],
+    return RefreshIndicator(
+      onRefresh: () => _onRefresh(context),
+      color: AppTheme.mintPrimary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle('연결된 기기'),
+            if (iotProvider.devices.isEmpty)
+              _buildEmptyState()
+            else
+              ...iotProvider.devices.map((device) => _buildDeviceCard(device)),
+            const SizedBox(height: 32),
+            _buildSupportedDevices(),
+          ],
+        ),
       ),
     );
   }

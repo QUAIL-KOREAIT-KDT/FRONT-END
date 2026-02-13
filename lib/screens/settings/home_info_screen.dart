@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../../services/user_service.dart';
+import '../../providers/user_provider.dart';
 // 조건부 import: 웹에서는 stub, 네이티브에서는 kpostal 사용
 import '../address_search_stub.dart'
     if (dart.library.io) '../address_search_native.dart' as address_search;
@@ -17,12 +19,48 @@ class HomeInfoScreen extends StatefulWidget {
 class _HomeInfoScreenState extends State<HomeInfoScreen> {
   final TextEditingController _addressController = TextEditingController();
   final UserService _userService = UserService();
-  String _selectedLocation = '서울특별시 강남구'; // 더미 데이터
+  String _selectedLocation = '';
   double _selectedTemperature = 22.0;
   double _selectedHumidity = 50.0;
   int _selectedDirectionIndex = 0;
   bool _isBasement = false;
   bool _isLoading = false;
+  bool _isInitLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserInfo();
+    });
+  }
+
+  void _loadUserInfo() {
+    final user = context.read<UserProvider>().user;
+    setState(() {
+      if (user != null) {
+        _selectedLocation = user.location ?? '';
+        _addressController.text = _selectedLocation;
+        _selectedTemperature = (user.indoorTemperature ?? 22.0).clamp(15.0, 30.0);
+        _selectedHumidity = (user.indoorHumidity ?? 50.0).clamp(20.0, 80.0);
+        _isBasement = user.underground == 'semi-basement';
+        _selectedDirectionIndex = _apiValueToDirectionIndex(user.houseDirection);
+      }
+      _isInitLoading = false;
+    });
+  }
+
+  /// 백엔드 API 값을 방향 인덱스로 변환
+  int _apiValueToDirectionIndex(String? direction) {
+    switch (direction) {
+      case 'N':
+        return 0; // 북향
+      case 'S':
+        return 1; // 남향
+      default:
+        return 2; // 기타
+    }
+  }
 
   @override
   void dispose() {
@@ -42,7 +80,12 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
 
             // 폼
             Expanded(
-              child: SingleChildScrollView(
+              child: _isInitLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          color: AppTheme.mintPrimary),
+                    )
+                  : SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,6 +583,15 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
 
       if (mounted) {
         if (success) {
+          // Provider 로컬 상태도 갱신 (서버 재요청 없이)
+          context.read<UserProvider>().updateHomeInfo(
+            location: _selectedLocation,
+            indoorTemperature: _selectedTemperature,
+            indoorHumidity: _selectedHumidity,
+            houseDirection: _directionToApiValue(_selectedDirectionIndex),
+            underground: _basementToApiValue(_isBasement),
+          );
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('집 정보가 저장되었습니다'),
@@ -549,7 +601,7 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
                   borderRadius: BorderRadius.circular(10)),
             ),
           );
-          Navigator.pop(context);
+          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

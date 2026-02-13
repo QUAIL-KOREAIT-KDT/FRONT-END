@@ -21,6 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _homeScrollController = ScrollController();
   final GlobalKey<DiagnosisScreenState> _diagnosisKey = GlobalKey<DiagnosisScreenState>();
+  final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
   bool _isDiagnosisAnalyzing = false;
 
   @override
@@ -68,11 +69,15 @@ class _MainScreenState extends State<MainScreen> {
       children: [
         Scaffold(
           key: _scaffoldKey,
-          drawer: const HamburgerMenu(),
+          drawer: HamburgerMenu(
+            onHomeInfoUpdated: () {
+              _homeKey.currentState?.refresh();
+            },
+          ),
           body: IndexedStack(
             index: _currentIndex,
             children: [
-              HomeScreenContent(onMenuTap: openDrawer, scrollController: _homeScrollController),
+              HomeScreen(key: _homeKey, onMenuTap: openDrawer, scrollController: _homeScrollController),
               DiagnosisScreen(
                 key: _diagnosisKey,
                 onAnalyzingChanged: (analyzing) {
@@ -98,18 +103,5 @@ class _MainScreenState extends State<MainScreen> {
           ),
       ],
     );
-  }
-}
-
-// HomeScreen을 MainScreen 내에서 사용하기 위한 컨텐츠 버전
-class HomeScreenContent extends StatelessWidget {
-  final VoidCallback? onMenuTap;
-  final ScrollController? scrollController;
-
-  const HomeScreenContent({super.key, this.onMenuTap, this.scrollController});
-
-  @override
-  Widget build(BuildContext context) {
-    return HomeScreen(onMenuTap: onMenuTap, scrollController: scrollController);
   }
 }

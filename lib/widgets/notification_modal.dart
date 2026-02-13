@@ -174,6 +174,8 @@ class NotificationModal extends StatelessWidget {
                               if (!notification.isRead) {
                                 provider.markAsRead(notification.id);
                               }
+                              _showNotificationDetailDialog(
+                                  context, notification);
                             },
                             onDelete: () => _showDeleteConfirmDialog(
                               context,
@@ -189,6 +191,164 @@ class NotificationModal extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showNotificationDetailDialog(
+    BuildContext context,
+    NotificationItem notification,
+  ) {
+    final dateStr =
+        '${notification.createdAt.year}년 ${notification.createdAt.month}월 ${notification.createdAt.day}일';
+    final timeStr =
+        '${notification.createdAt.hour.toString().padLeft(2, '0')}:${notification.createdAt.minute.toString().padLeft(2, '0')}';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 헤더: 아이콘 + 타이틀 + 닫기
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _getTypeColor(notification)
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        notification.icon,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      notification.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray800,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(dialogContext),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.gray500,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // 날짜/시간 정보
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.gray100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 16,
+                      color: AppTheme.gray500,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$dateStr $timeStr',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 알림 내용
+              Text(
+                notification.message,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppTheme.gray700,
+                  height: 1.6,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 확인 버튼
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.mintPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    '확인',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getTypeColor(NotificationItem notification) {
+    switch (notification.type) {
+      case NotificationType.daily:
+        return AppTheme.mintPrimary;
+      case NotificationType.notice:
+        return AppTheme.mintPrimary;
+      case NotificationType.riskAlert:
+        return AppTheme.danger;
+      case NotificationType.update:
+        return AppTheme.mintPrimary;
+      case NotificationType.tip:
+        return AppTheme.caution;
+      case NotificationType.diagnosis:
+        return AppTheme.pinkPrimary;
+    }
   }
 
   void _showDeleteAllConfirmDialog(

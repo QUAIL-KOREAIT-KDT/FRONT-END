@@ -24,7 +24,9 @@ class UserProvider extends ChangeNotifier {
         nickname: response.nickname ?? '회원님',
         location: response.address,
         indoorTemperature: response.indoorTemp,
+        indoorHumidity: response.indoorHumidity,
         houseDirection: response.windowDirection,
+        underground: response.underground,
         isOnboardingCompleted: response.address != null,
       );
 
@@ -156,13 +158,17 @@ class UserProvider extends ChangeNotifier {
   void updateHomeInfo({
     String? location,
     double? indoorTemperature,
+    double? indoorHumidity,
     String? houseDirection,
+    String? underground,
   }) {
     if (_user != null) {
       _user = _user!.copyWith(
         location: location ?? _user!.location,
         indoorTemperature: indoorTemperature ?? _user!.indoorTemperature,
+        indoorHumidity: indoorHumidity ?? _user!.indoorHumidity,
         houseDirection: houseDirection ?? _user!.houseDirection,
+        underground: underground ?? _user!.underground,
       );
       notifyListeners();
     }

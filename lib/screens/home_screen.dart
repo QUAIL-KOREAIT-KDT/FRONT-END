@@ -14,10 +14,10 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onMenuTap, this.scrollController});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   final HomeService _homeService = HomeService();
 
@@ -52,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen>
     _gaugeAnimController.dispose();
     super.dispose();
   }
+
+  /// 외부에서 홈 화면 데이터를 새로고침할 수 있는 메서드
+  Future<void> refresh() => _loadHomeInfo();
 
   Future<void> _loadHomeInfo() async {
     setState(() {
@@ -678,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '오늘의 날씨',
+                '현재 날씨',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import 'user_service.dart';
 
 /// FCM 푸시 알림 서비스
 ///
@@ -16,7 +17,10 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  final UserService _userService = UserService();
+
   bool _isInitialized = false;
+  String? _nickname;
 
   /// 알림 클릭 시 콜백
   Function(Map<String, dynamic>)? onNotificationTap;
@@ -70,10 +74,24 @@ class NotificationService {
         _handleMessageOpenedApp(initialMessage);
       }
 
+      // 8. 닉네임 가져오기
+      await _loadNickname();
+
       _isInitialized = true;
       debugPrint('✅ NotificationService 초기화 완료');
     } catch (e) {
       debugPrint('❌ NotificationService 초기화 실패: $e');
+    }
+  }
+
+  /// 서버에서 닉네임 로드
+  Future<void> _loadNickname() async {
+    try {
+      final user = await _userService.getMe();
+      _nickname = user.nickname;
+      debugPrint('📛 닉네임 로드: $_nickname');
+    } catch (e) {
+      debugPrint('⚠️ 닉네임 로드 실패: $e');
     }
   }
 
@@ -143,10 +161,13 @@ class NotificationService {
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('📩 포그라운드 메시지: ${message.notification?.title}');
 
+    final body = message.notification?.body ?? '';
+    final displayBody = _nickname != null ? '$_nickname님, $body' : body;
+
     // 로컬 알림으로 표시
     await _showLocalNotification(
       title: message.notification?.title ?? '알림',
-      body: message.notification?.body ?? '',
+      body: displayBody,
       payload: jsonEncode(message.data),
     );
   }

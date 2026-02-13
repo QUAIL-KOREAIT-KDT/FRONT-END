@@ -115,7 +115,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // 이미지 영역 (CAM 이미지 우선, 없으면 원본)
             Container(
               margin: const EdgeInsets.all(20),
-              height: 280,
+              height: 340,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
                 image: diagnosis.displayImagePath.isNotEmpty

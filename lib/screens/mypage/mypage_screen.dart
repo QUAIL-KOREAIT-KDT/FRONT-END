@@ -863,60 +863,6 @@ class _MypageScreenState extends State<MypageScreen> {
                     ),
                   ),
 
-                  // 이미지 표시 (CAM 이미지 우선, 없으면 원본)
-                  if (detail.displayImagePath.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      height: 260,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.gray200),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Image.network(
-                          detail.displayImagePath,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes !=
-                                        null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                                color: AppTheme.mintPrimary,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: AppTheme.gray100,
-                              child: const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text('🦠', style: TextStyle(fontSize: 48)),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      '이미지를 불러올 수 없습니다',
-                                      style: TextStyle(
-                                        color: AppTheme.gray400,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
                   // 드래그 인디케이터
                   Center(
                     child: Container(
@@ -930,13 +876,66 @@ class _MypageScreenState extends State<MypageScreen> {
                     ),
                   ),
 
-                  // 스크롤 가능한 내용 (신뢰도 포함)
+                  // 스크롤 가능한 내용 (이미지 + 신뢰도 포함)
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 이미지 표시 (CAM 이미지 우선, 없으면 원본)
+                          if (detail.displayImagePath.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              height: 260,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppTheme.gray200),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: Image.network(
+                                  detail.displayImagePath,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        color: AppTheme.mintPrimary,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppTheme.gray100,
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text('🦠', style: TextStyle(fontSize: 48)),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              '이미지를 불러올 수 없습니다',
+                                              style: TextStyle(
+                                                color: AppTheme.gray400,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+
                           // 신뢰도 배지 (높을수록 초록색, 낮을수록 빨간색)
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -1488,6 +1487,7 @@ class _MypageScreenState extends State<MypageScreen> {
                               SnackBar(
                                 content: const Text('기록이 삭제되었습니다'),
                                 backgroundColor: AppTheme.mintPrimary,
+                                duration: const Duration(seconds: 3),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),

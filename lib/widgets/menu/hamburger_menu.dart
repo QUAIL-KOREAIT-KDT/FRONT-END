@@ -6,7 +6,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 
 class HamburgerMenu extends StatefulWidget {
-  const HamburgerMenu({super.key});
+  final VoidCallback? onHomeInfoUpdated;
+
+  const HamburgerMenu({super.key, this.onHomeInfoUpdated});
 
   @override
   State<HamburgerMenu> createState() => _HamburgerMenuState();
@@ -197,10 +199,13 @@ class _HamburgerMenuState extends State<HamburgerMenu>
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
+          onTap: () async {
             Navigator.pop(context); // 드로어 닫기
             if (currentRoute != route) {
-              Navigator.pushNamed(context, route);
+              final result = await Navigator.pushNamed(context, route);
+              if (result == true && route == AppRoutes.homeInfo) {
+                widget.onHomeInfoUpdated?.call();
+              }
             }
           },
           child: Padding(

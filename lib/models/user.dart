@@ -5,7 +5,9 @@ class UserModel {
   final String? profileImage;
   final String? location;
   final double? indoorTemperature;
+  final double? indoorHumidity;
   final String? houseDirection;
+  final String? underground;
   final bool isOnboardingCompleted;
 
   UserModel({
@@ -15,7 +17,9 @@ class UserModel {
     this.profileImage,
     this.location,
     this.indoorTemperature,
+    this.indoorHumidity,
     this.houseDirection,
+    this.underground,
     this.isOnboardingCompleted = false,
   });
 
@@ -27,7 +31,9 @@ class UserModel {
       profileImage: json['profile_image'],
       location: json['location'],
       indoorTemperature: json['indoor_temperature']?.toDouble(),
+      indoorHumidity: json['indoor_humidity']?.toDouble(),
       houseDirection: json['house_direction'],
+      underground: json['underground'],
       isOnboardingCompleted: json['is_onboarding_completed'] ?? false,
     );
   }
@@ -40,7 +46,9 @@ class UserModel {
       'profile_image': profileImage,
       'location': location,
       'indoor_temperature': indoorTemperature,
+      'indoor_humidity': indoorHumidity,
       'house_direction': houseDirection,
+      'underground': underground,
       'is_onboarding_completed': isOnboardingCompleted,
     };
   }
@@ -52,7 +60,9 @@ class UserModel {
     String? profileImage,
     String? location,
     double? indoorTemperature,
+    double? indoorHumidity,
     String? houseDirection,
+    String? underground,
     bool? isOnboardingCompleted,
   }) {
     return UserModel(
@@ -62,7 +72,9 @@ class UserModel {
       profileImage: profileImage ?? this.profileImage,
       location: location ?? this.location,
       indoorTemperature: indoorTemperature ?? this.indoorTemperature,
+      indoorHumidity: indoorHumidity ?? this.indoorHumidity,
       houseDirection: houseDirection ?? this.houseDirection,
+      underground: underground ?? this.underground,
       isOnboardingCompleted:
           isOnboardingCompleted ?? this.isOnboardingCompleted,
     );

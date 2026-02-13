@@ -274,7 +274,9 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: (_selectedImage != null && _isLocationSelected && !_isLoading)
+                            onPressed: (_selectedImage != null &&
+                                    _isLocationSelected &&
+                                    !_isLoading)
                                 ? _analyzeMold
                                 : null,
                             style: ElevatedButton.styleFrom(
@@ -383,10 +385,6 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                '🔬',
-                style: TextStyle(fontSize: 28),
-              ),
               const SizedBox(width: 10),
               const Text(
                 '곰팡이 진단',
@@ -394,6 +392,32 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.gray800,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _showPhotoGuideModal(),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.help_outline,
+                      color: AppTheme.gray700,
+                      size: 24,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -408,6 +432,213 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showPhotoGuideModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 헤더
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '촬영 가이드',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray800,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(
+                          Icons.close,
+                          size: 24,
+                          color: AppTheme.gray500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 올바른 예시
+                _buildGuideExample(
+                  title: '올바른 촬영 예시',
+                  imagePath: 'assets/images/mold/correct.png',
+                  description: '곰팡이 부분이 화면의 대부분을 차지하도록\n최대한 확대해서 촬영해주세요.',
+                  isCorrect: true,
+                ),
+                const SizedBox(height: 16),
+
+                // 아쉬운 예시
+                _buildGuideExample(
+                  title: '아쉬운 촬영 예시',
+                  imagePath: 'assets/images/mold/not_correct.png',
+                  description:
+                      '배경이 많이 포함되면 분석 정확도가 떨어집니다.\n곰팡이를 최대한 가까이 촬영해주세요.',
+                  isCorrect: false,
+                ),
+                const SizedBox(height: 20),
+
+                // 주의 문구
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.warning.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppTheme.warning,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'AI 진단 결과는 참고용이며, 100% 정확하지 않을 수 있습니다. 정확한 판단은 전문가에게 문의해주세요.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.gray700,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 확인 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.mintPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      '확인',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideExample({
+    required String title,
+    required String imagePath,
+    required String description,
+    required bool isCorrect,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              size: 20,
+              color: isCorrect ? AppTheme.safe : AppTheme.danger,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: isCorrect ? AppTheme.safe : AppTheme.danger,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isCorrect
+                    ? AppTheme.safe.withValues(alpha: 0.4)
+                    : AppTheme.danger.withValues(alpha: 0.4),
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppTheme.gray100,
+                    child: Center(
+                      child: Text(
+                        isCorrect ? '올바른 예시' : '잘못된 예시',
+                        style: TextStyle(
+                          color: AppTheme.gray400,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          description,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.gray600,
+            height: 1.5,
+          ),
+        ),
+      ],
     );
   }
 

@@ -56,17 +56,22 @@ class RiskInfoModal extends StatelessWidget {
 
             // 설명 섹션
             _buildInfoSection(
-              '📊 위험도 점수란?',
-              '곰팡이가 발생할 가능성을 0~100점 사이의 점수로 나타낸 지표입니다. '
-                  '점수가 높을수록 곰팡이 발생 위험이 높습니다.',
+              '📊 위험도란?',
+              '곰팡이가 발생할 가능성을 0~100% 사이의 수치로 나타낸 지표입니다. '
+                  '수치가 높을수록 곰팡이 발생 위험이 높습니다.',
             ),
             const SizedBox(height: 16),
 
             _buildInfoSection(
               '🧮 어떻게 산출되나요?',
-              '실내외 온도, 습도, 날씨, 시간대 등 다양한 환경 요인을 AI 모델에 입력하여 '
-                  '곰팡이 발생 위험도를 예측합니다.',
+              '다음 3단계를 거쳐 위험도를 산출합니다.',
             ),
+            const SizedBox(height: 12),
+            _buildStep('1', '외부 온습도를 기반으로 실내 온습도를 유추합니다.'),
+            const SizedBox(height: 8),
+            _buildStep('2', '실내 온습도와 창문 방향, 층수 등을 고려하여 벽면 온도와 벽면 상대 습도를 계산합니다.'),
+            const SizedBox(height: 8),
+            _buildStep('3', '벽면 상대 습도에 곰팡이 임계점을 적용하여 최종 위험도를 산출합니다.'),
             const SizedBox(height: 16),
 
             // 위험도 단계 안내
@@ -79,13 +84,13 @@ class RiskInfoModal extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildRiskLevel('0~30점', '안전', AppTheme.safe),
+            _buildRiskLevel('0~30%', '안전', AppTheme.safe),
             const SizedBox(height: 8),
-            _buildRiskLevel('31~60점', '주의', AppTheme.caution),
+            _buildRiskLevel('31~60%', '주의', AppTheme.caution),
             const SizedBox(height: 8),
-            _buildRiskLevel('61~90점', '경고', AppTheme.warning),
+            _buildRiskLevel('61~90%', '경고', AppTheme.warning),
             const SizedBox(height: 8),
-            _buildRiskLevel('91~100점', '위험', AppTheme.danger),
+            _buildRiskLevel('91~100%', '위험', AppTheme.danger),
             const SizedBox(height: 20),
 
             // 닫기 버튼
@@ -136,6 +141,43 @@ class RiskInfoModal extends StatelessWidget {
             fontSize: 14,
             height: 1.5,
             color: AppTheme.gray600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep(String number, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: AppTheme.mintPrimary,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            description,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: AppTheme.gray600,
+            ),
           ),
         ),
       ],
