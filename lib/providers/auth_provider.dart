@@ -216,10 +216,11 @@ class AuthProvider extends ChangeNotifier {
     await _authService.logout();
   }
 
-  // 로그아웃
+  // 로그아웃 (카카오 동의 초기화 포함 → 재로그인 시 동의 화면 다시 표시)
   Future<void> logout() async {
     if (_devBypassKakaoLogin) {
       debugPrint('[개발 모드] 로그아웃');
+      await _clearAllTokens();
       _user = null;
       _isLoggedIn = false;
       _isNewUser = false;
@@ -227,11 +228,12 @@ class AuthProvider extends ChangeNotifier {
       return;
     }
 
+    // 카카오 연결 해제 (unlink) → 동의 초기화
     try {
-      await UserApi.instance.logout();
-      debugPrint('카카오 로그아웃 성공');
+      await UserApi.instance.unlink();
+      debugPrint('카카오 연결 해제 성공 (동의 초기화됨)');
     } catch (error) {
-      debugPrint('카카오 로그아웃 실패: $error');
+      debugPrint('카카오 연결 해제 실패: $error');
     }
 
     await _clearAllTokens();
@@ -242,15 +244,27 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 회원 탈퇴
+  // 회원 탈퇴 (카카오 동의 초기화 + DB 유저 삭제)
   Future<void> deleteAccount() async {
+    // 1. 백엔드에서 유저 데이터 삭제 (JWT가 유효한 동안 먼저 호출)
     try {
-      await UserApi.instance.unlink();
-      debugPrint('카카오 연결 해제 성공');
+      await _authService.withdraw();
+      debugPrint('백엔드 회원 탈퇴 완료');
     } catch (error) {
-      debugPrint('카카오 연결 해제 실패: $error');
+      debugPrint('백엔드 회원 탈퇴 실패: $error');
     }
 
+    // 2. 카카오 연결 해제 (unlink) → 동의 초기화
+    if (!_devBypassKakaoLogin) {
+      try {
+        await UserApi.instance.unlink();
+        debugPrint('카카오 연결 해제 성공 (동의 초기화됨)');
+      } catch (error) {
+        debugPrint('카카오 연결 해제 실패: $error');
+      }
+    }
+
+    // 3. 로컬 토큰 모두 삭제
     await _clearAllTokens();
 
     _user = null;

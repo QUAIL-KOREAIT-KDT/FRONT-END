@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 
 class HamburgerMenu extends StatefulWidget {
@@ -296,6 +297,66 @@ class _HamburgerMenuState extends State<HamburgerMenu>
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return const SizedBox(height: 24);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          // 로그아웃 버튼
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => _showLogoutDialog(context),
+              icon: const Icon(Icons.logout_rounded, size: 20),
+              label: const Text('로그아웃'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.gray500,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('로그아웃'),
+        content: const Text(
+          '로그아웃 시 카카오 서비스 동의가 초기화됩니다.\n'
+          '다시 로그인하면 동의 후 정상 이용 가능합니다.\n\n'
+          '서비스 이용에 문제가 있을 경우 '
+          '로그아웃 후 재로그인을 시도해 주세요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // 다이얼로그 닫기
+              Navigator.pop(context); // 드로어 닫기
+              await context.read<AuthProvider>().logout();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.login,
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

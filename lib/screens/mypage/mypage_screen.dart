@@ -868,7 +868,7 @@ class _MypageScreenState extends State<MypageScreen> {
                     Container(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),
-                      height: 190,
+                      height: 260,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),

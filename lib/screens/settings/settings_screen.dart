@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../config/routes.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -129,6 +132,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.help_outline_rounded,
                       title: '도움말',
                       onTap: () => _showHelpDialog(context),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 계정 섹션
+                    _buildSectionTitle('계정'),
+                    _buildSettingItem(
+                      icon: Icons.person_remove_rounded,
+                      title: '회원탈퇴',
+                      titleColor: Colors.red.shade400,
+                      onTap: () => _showWithdrawDialog(context),
                     ),
 
                   ],
@@ -400,6 +414,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
 5. 문의
   - 개인정보 관련 문의 사항은 앱 내 설정 메뉴를 통해 접수해 주세요.
 ''');
+  }
+
+  void _showWithdrawDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('회원탈퇴'),
+        content: const Text(
+          '탈퇴 시 모든 데이터가 삭제되고 '
+          '카카오 서비스 동의도 초기화됩니다.\n\n'
+          '정말 탈퇴하시겠습니까?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<AuthProvider>().deleteAccount();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.login,
+                  (route) => false,
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('탈퇴하기'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showHelpDialog(BuildContext context) {

@@ -71,6 +71,18 @@ class AuthService {
     return token != null;
   }
 
+  /// 회원 탈퇴 (백엔드 DB에서 유저 삭제)
+  Future<void> withdraw() async {
+    try {
+      await _apiService.dio.delete('/users/withdraw');
+      debugPrint('[AuthService] 회원 탈퇴 완료');
+    } on DioException catch (e) {
+      debugPrint('[AuthService] 회원 탈퇴 실패: ${e.response?.data}');
+      throw _handleError(e);
+    }
+    await _apiService.clearToken();
+  }
+
   /// 에러 핸들링
   Exception _handleError(DioException e) {
     if (e.response != null) {

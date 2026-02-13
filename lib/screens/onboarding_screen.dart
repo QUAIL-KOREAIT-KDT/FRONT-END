@@ -53,8 +53,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final directions = ['N', 'S', 'O'];
     final windowDirection = directions[_selectedDirectionIndex];
 
-    // 반지하 여부: 일반 -> underground 아님, 반지하 -> semi-basement
-    final underground = _isBasement ? 'semi-basement' : 'underground';
+    // 반지하 여부: 일반 -> others, 반지하 -> semi-basement
+    final underground = _isBasement ? 'semi-basement' : 'others';
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 

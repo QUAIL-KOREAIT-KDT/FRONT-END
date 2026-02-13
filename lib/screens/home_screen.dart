@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../config/theme.dart';
 import '../widgets/notification_modal.dart';
+import '../widgets/risk_info_modal.dart';
 import '../services/home_service.dart';
 import '../providers/notification_provider.dart';
 
@@ -16,7 +17,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final HomeService _homeService = HomeService();
 
   // API 데이터
@@ -24,14 +26,31 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // 게이지 애니메이션
+  late AnimationController _gaugeAnimController;
+  late Animation<double> _gaugeAnimation;
+
   @override
   void initState() {
     super.initState();
+    _gaugeAnimController = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    );
+    _gaugeAnimation = Tween<double>(begin: 0, end: 0).animate(
+      CurvedAnimation(parent: _gaugeAnimController, curve: Curves.easeOutCubic),
+    );
     _loadHomeInfo();
     // 알림 목록 불러오기
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationProvider>().fetchNotifications();
     });
+  }
+
+  @override
+  void dispose() {
+    _gaugeAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadHomeInfo() async {
@@ -47,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _homeInfo = homeInfo;
           _isLoading = false;
         });
+        _startGaugeAnimation();
       }
     } catch (e) {
       if (mounted) {
@@ -56,6 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  void _startGaugeAnimation() {
+    final target = (_homeInfo?.currentRisk?.percentage ?? 0).toDouble();
+    _gaugeAnimation = Tween<double>(begin: 0, end: target).animate(
+      CurvedAnimation(parent: _gaugeAnimController, curve: Curves.easeOutCubic),
+    );
+    _gaugeAnimController.forward(from: 0);
   }
 
   // 위험도 퍼센트 (실시간 CURRENT 기준)
@@ -92,47 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return _homeInfo!.currentRisk!.message;
     }
     return '현재 곰팡이로부터 안전한 환경입니다.';
-  }
-
-  // 캐릭터 이미지 위젯
-  Widget _buildCharacterImage() {
-    return ClipRect(
-      child: SizedBox(
-        width: 220, // ← 이미지 영역 가로 크기 조절
-        height: 220, // ← 이미지 영역 세로 크기 조절
-        child: FittedBox(
-          fit: BoxFit.cover, // ← 이미지 채우기 방식 (cover: 꽉 채움, contain: 비율 유지)
-          child: Image.asset(
-            _getRiskImage(),
-            width: 200, // ← 원본 이미지 가로 크기 조절
-            height: 200, // ← 원본 이미지 세로 크기 조절
-            errorBuilder: (context, error, stackTrace) {
-              // 이미지 로드 실패 시 기본 이모지 표시
-              return Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppTheme.mintLight2, AppTheme.pinkLight2],
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    _riskPercentage <= 30
-                        ? '😊'
-                        : _riskPercentage <= 60
-                            ? '😐'
-                            : '😰',
-                    style: const TextStyle(fontSize: 60),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -308,21 +295,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLocationBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.location_on_outlined,
-            size: 16,
-            color: AppTheme.mintPrimary,
+          // 왼쪽 공간 (중앙 정렬을 위해)
+          Expanded(
+            child: SizedBox(),
           ),
-          const SizedBox(width: 6),
-          Text(
-            _location,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppTheme.gray500,
+          // 중앙에 위치 표시
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppTheme.mintPrimary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _location,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.gray500,
+                ),
+              ),
+            ],
+          ),
+          // 우측 공간 및 물음표 버튼
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () => RiskInfoModal.show(context),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.help_outline,
+                      color: AppTheme.gray700,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -330,12 +357,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 새로운 위험도 표시 섹션 (바 게이지 + 캐릭터)
+  // 마커 고정 색상
+  static const Color _maxColor = Color(0xFFFF6B6B); // 최고: 빨간색
+  static const Color _minColor = Color(0xFF54A0FF); // 최저: 파란색
+
+  // 반원형 게이지 + 캐릭터 중앙 레이아웃 (계기판 스타일)
   Widget _buildRiskDisplaySection() {
+    const double gaugeSize = 300;
+    const double strokeWidth = 37.0; // 두께 확대 (20→35)
+    final riskColor = AppTheme.getRiskColor(_riskPercentage);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -347,182 +382,270 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 좌측: 새 게이지 위젯
-            RiskGaugeBarWidget(
-              currentPercentage: _riskPercentage,
-              currentTime: _homeInfo?.currentHourWeather?.time ?? '',
-              maxPercentage: _homeInfo?.maxRisk?.percentage,
-              maxTime: _homeInfo?.maxRisk?.time,
-              minPercentage: _homeInfo?.minRisk?.percentage,
-              minTime: _homeInfo?.minRisk?.time,
-            ),
-
-            const SizedBox(width: 16),
-
-            // 우측: 캐릭터 이미지 + 상태 정보 + MAX/MIN 칩
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            // ── 반원 게이지 + 바늘 마커 + 캐릭터 영역 ──
+            SizedBox(
+              width: gaugeSize,
+              height: gaugeSize / 2 + 44,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  // 캐릭터 이미지
-                  _buildCharacterImage(),
+                  // 배경 반원 게이지
+                  CustomPaint(
+                    size: Size(gaugeSize, gaugeSize / 2),
+                    painter: _SemiCircleGaugePainter(
+                      percentage: 100,
+                      color: Colors.transparent,
+                      strokeWidth: strokeWidth,
+                      isBackground: true,
+                    ),
+                  ),
 
-                  const SizedBox(height: 16),
+                  // 채워진 반원 게이지 (애니메이션)
+                  AnimatedBuilder(
+                    animation: _gaugeAnimation,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: Size(gaugeSize, gaugeSize / 2),
+                        painter: _SemiCircleGaugePainter(
+                          percentage: _gaugeAnimation.value,
+                          color: riskColor,
+                          strokeWidth: strokeWidth,
+                          isBackground: false,
+                        ),
+                      );
+                    },
+                  ),
 
-                  // 상태 메시지
-                  Text(
-                    _getRiskMessage(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.gray700,
+                  // 눈금 텍스트 (0, 30, 60, 90)
+                  ..._buildTickLabels(gaugeSize, strokeWidth),
+
+                  // 바늘 마커들 (MIN/MAX만 표시)
+                  CustomPaint(
+                    size: Size(gaugeSize, gaugeSize / 2),
+                    painter: _NeedleMarkerPainter(
+                      gaugeSize: gaugeSize,
+                      strokeWidth: strokeWidth,
+                      minPercentage: _homeInfo?.minRisk?.percentage,
+                      maxPercentage: _homeInfo?.maxRisk?.percentage,
+                      minColor: _minColor,
+                      maxColor: _maxColor,
+                    ),
+                  ),
+
+                  // 캐릭터 이미지 (반원 안쪽 하단 중앙)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: SizedBox(
+                        width: 150,
+                        height: 150,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: Image.asset(
+                            _getRiskImage(),
+                            width: 100,
+                            height: 100,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppTheme.mintLight2,
+                                      AppTheme.pinkLight2,
+                                    ],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _riskPercentage <= 30
+                                        ? '😊'
+                                        : _riskPercentage <= 60
+                                            ? '😐'
+                                            : '😰',
+                                    style: const TextStyle(fontSize: 36),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // ── 현재 시간 기준 + 퍼센트 + 상태 텍스트 ──
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '곰팡이 위험도',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black.withValues(alpha: 0.4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${_homeInfo?.currentHourWeather?.time ?? ''} 기준',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$_riskPercentage%',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                color: riskColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _getRiskMessage(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray700,
+              ),
+            ),
+
+            // ── MAX / MIN 정보 칩 (고정 색상) ──
+            if (_homeInfo?.maxRisk != null || _homeInfo?.minRisk != null) ...[
+              const SizedBox(height: 16),
+              _buildMaxMinChips(),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRiskGauge() {
-    final riskColor = AppTheme.getRiskColor(_riskPercentage);
-    final riskStatus = AppTheme.getRiskStatus(_riskPercentage);
+  // 눈금 라벨 (0, 30, 60, 90) 위치 계산
+  List<Widget> _buildTickLabels(double gaugeSize, double strokeWidth) {
+    const ticks = [
+      (value: 30, color: AppTheme.safe),
+      (value: 60, color: AppTheme.caution),
+      (value: 90, color: AppTheme.warning),
+    ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        children: [
-          // 원형 게이지
-          SizedBox(
-            width: 220,
-            height: 220,
-            child: Stack(
-              children: [
-                // 배경 게이지
-                CustomPaint(
-                  size: const Size(220, 220),
-                  painter: _GaugeBackgroundPainter(),
-                ),
-                // 채워진 게이지
-                CustomPaint(
-                  size: const Size(220, 220),
-                  painter: _GaugeFillPainter(
-                    percentage: _riskPercentage,
-                    color: riskColor,
-                  ),
-                ),
-                // 중앙 원
-                Center(
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // 캐릭터
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.mintLight2,
-                                AppTheme.pinkLight2
-                              ],
-                            ),
-                            border: Border.all(
-                              color: AppTheme.mintMedium,
-                              width: 3,
-                              strokeAlign: BorderSide.strokeAlignOutside,
-                            ),
-                          ),
-                          child: const Center(
-                            child: Text('🧚', style: TextStyle(fontSize: 36)),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$_riskPercentage%',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: riskColor,
-                          ),
-                        ),
-                        Text(
-                          '곰팡이 위험도',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.gray500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    final radius = gaugeSize / 2;
+
+    return ticks.map((t) {
+      final angle = math.pi + (t.value / 100) * math.pi;
+      // 두꺼운 게이지 바깥에 배치 (strokeWidth 반영)
+      final textRadius = radius + 18;
+      final dx = radius + textRadius * math.cos(angle);
+      final dy = radius + textRadius * math.sin(angle);
+
+      return Positioned(
+        left: dx - 12,
+        top: dy - 8,
+        child: SizedBox(
+          width: 24,
+          child: Text(
+            '${t.value}',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.color.withValues(alpha: 0.9),
             ),
           ),
+        ),
+      );
+    }).toList();
+  }
 
-          const SizedBox(height: 16),
+  // MAX/MIN 칩 (고정 색상: 최고=빨강, 최저=파랑)
+  Widget _buildMaxMinChips() {
+    final maxRisk = _homeInfo?.maxRisk;
+    final minRisk = _homeInfo?.minRisk;
 
-          // 상태 뱃지
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  riskColor.withOpacity(0.15),
-                  riskColor.withOpacity(0.05),
+    Widget buildChip({
+      required IconData icon,
+      required String label,
+      required int percentage,
+      required String time,
+      required Color color,
+    }) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$label $percentage%',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                  if (time.isNotEmpty)
+                    Text(
+                      time,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: color.withValues(alpha: 0.7),
+                      ),
+                    ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: riskColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  riskStatus,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: riskColor,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        if (minRisk != null)
+          buildChip(
+            icon: Icons.arrow_downward_rounded,
+            label: '최저',
+            percentage: minRisk.percentage,
+            time: minRisk.time,
+            color: _minColor, // 고정 파란색
+          ),
+        if (maxRisk != null && minRisk != null) const SizedBox(width: 10),
+        if (maxRisk != null)
+          buildChip(
+            icon: Icons.arrow_upward_rounded,
+            label: '최고',
+            percentage: maxRisk.percentage,
+            time: maxRisk.time,
+            color: _maxColor, // 고정 빨간색
+          )
+      ],
     );
   }
 
@@ -728,413 +851,248 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  RiskGaugeBarWidget
-//  LayoutBuilder + Stack 기반 수직 게이지 바
-//  - 바 내부 하단: 현재 퍼센트 (흰색 텍스트)
-//  - 바 바깥 좌측: MAX(빨강) / MIN(파랑) 마커 + 지시선
-//  - 바 아래: 현재 시간 안내 문구
+//  반원형 게이지 페인터
+//  - 왼쪽(0%) → 오른쪽(100%), 180도 아치
+//  - isBackground=true: 4구간 그라데이션 배경
+//  - isBackground=false: 현재 퍼센트까지 진한 색 채움
 // ─────────────────────────────────────────────────────────────
-class RiskGaugeBarWidget extends StatefulWidget {
-  final int currentPercentage;
-  final String currentTime;
-  final int? maxPercentage;
-  final String? maxTime;
-  final int? minPercentage;
-  final String? minTime;
+class _SemiCircleGaugePainter extends CustomPainter {
+  final double percentage;
+  final Color color;
+  final double strokeWidth;
+  final bool isBackground;
 
-  const RiskGaugeBarWidget({
-    super.key,
-    required this.currentPercentage,
-    required this.currentTime,
-    this.maxPercentage,
-    this.maxTime,
-    this.minPercentage,
-    this.minTime,
+  _SemiCircleGaugePainter({
+    required this.percentage,
+    required this.color,
+    required this.strokeWidth,
+    required this.isBackground,
   });
 
   @override
-  State<RiskGaugeBarWidget> createState() => _RiskGaugeBarWidgetState();
-}
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height);
+    final radius = size.width / 2 - strokeWidth / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-class _RiskGaugeBarWidgetState extends State<RiskGaugeBarWidget> {
-  // 애니메이션용 표시 퍼센트 (0에서 시작해 실제값으로 전환)
-  double _animatedPercentage = 0;
+    if (isBackground) {
+      // 4구간 배경 (safe → caution → warning → danger)
+      const segments = [
+        (start: 0.0, sweep: 0.30, color: AppTheme.safe),
+        (start: 0.30, sweep: 0.30, color: AppTheme.caution),
+        (start: 0.60, sweep: 0.30, color: AppTheme.warning),
+        (start: 0.90, sweep: 0.10, color: AppTheme.danger),
+      ];
 
-  @override
-  void initState() {
-    super.initState();
-    // 첫 프레임 렌더 후 애니메이션 시작
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _animatedPercentage = widget.currentPercentage.toDouble();
-        });
+      for (final seg in segments) {
+        final paint = Paint()
+          ..color = seg.color.withValues(alpha: 0.25)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.butt;
+
+        canvas.drawArc(
+          rect,
+          math.pi + seg.start * math.pi,
+          seg.sweep * math.pi,
+          false,
+          paint,
+        );
       }
-    });
-  }
+    } else {
+      // 채워진 게이지
+      if (percentage <= 0) return;
 
-  @override
-  void didUpdateWidget(RiskGaugeBarWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 데이터가 새로 갱신될 때도 애니메이션 재실행
-    if (oldWidget.currentPercentage != widget.currentPercentage) {
-      setState(() {
-        _animatedPercentage = widget.currentPercentage.toDouble();
-      });
+      final sweepAngle = (percentage / 100).clamp(0.0, 1.0) * math.pi;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+
+      // SweepGradient로 구간별 색상 적용
+      paint.shader = SweepGradient(
+        startAngle: math.pi,
+        endAngle: 2 * math.pi,
+        colors: const [
+          AppTheme.safe,
+          AppTheme.caution,
+          AppTheme.warning,
+          AppTheme.danger,
+        ],
+        stops: const [0.0, 0.3, 0.6, 1.0],
+      ).createShader(rect);
+
+      canvas.drawArc(rect, math.pi, sweepAngle, false, paint);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    const double barHeight = 220;
-    const double barWidth = 36;
-    // 좌측 마커(MAX/MIN) 영역 너비
-    const double markerAreaWidth = 76;
-    // 우측 눈금(30/60/90) 영역 너비
-    const double tickAreaWidth = 28;
-    // 전체 Stack 너비 = 좌측 마커 + 바 + 우측 눈금
-    const double totalWidth = markerAreaWidth + barWidth + tickAreaWidth;
-
-    final currentColor = AppTheme.getRiskColor(widget.currentPercentage);
-
-    // 우측 눈금 정의
-    const thresholds = [
-      (value: 30, color: Color(0xFF4DD9BC)), // safe (green)
-      (value: 60, color: Color(0xFFFFD93D)), // caution (yellow)
-      (value: 90, color: Color(0xFFFF6B6B)), // danger (red)
-    ];
-
-    // ③ 전체를 Padding(right)으로 감싸서 캐릭터와 간격 확보
-    return Padding(
-      padding: const EdgeInsets.only(right: 16.0),
-      // ② Column에 crossAxisAlignment.center → 하단 텍스트 중앙 정렬
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ── 게이지 바 + 좌측 마커 + 우측 눈금 ──
-          SizedBox(
-            width: totalWidth,
-            height: barHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // ── 좌측: MAX/MIN 마커 ──
-                if (widget.maxPercentage != null)
-                  _buildMarker(
-                    barHeight: barHeight,
-                    markerAreaWidth: markerAreaWidth,
-                    percentage: widget.maxPercentage!,
-                    time: widget.maxTime ?? '',
-                    isMax: true,
-                  ),
-                if (widget.minPercentage != null)
-                  _buildMarker(
-                    barHeight: barHeight,
-                    markerAreaWidth: markerAreaWidth,
-                    percentage: widget.minPercentage!,
-                    time: widget.minTime ?? '',
-                    isMax: false,
-                  ),
-
-                // ── 게이지 바 본체 (중앙에 배치) ──
-                Positioned(
-                  left: markerAreaWidth,
-                  top: 0,
-                  bottom: 0,
-                  child: SizedBox(
-                    width: barWidth,
-                    height: barHeight,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          // 배경 그라데이션 (위험 구간 표시)
-                          Container(
-                            width: barWidth,
-                            height: barHeight,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Color(0x4D4DD9BC), // safe 30%
-                                  Color(0x4DFFD93D), // caution 30%
-                                  Color(0x4DFF9F43), // warning 30%
-                                  Color(0x4DFF6B6B), // danger 30%
-                                ],
-                                stops: [0.0, 0.3, 0.6, 1.0],
-                              ),
-                            ),
-                          ),
-
-                          // 채워진 게이지 (0 → 실제값 애니메이션)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 900),
-                            curve: Curves.easeOutCubic,
-                            width: barWidth,
-                            height: barHeight * (_animatedPercentage / 100),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  currentColor.withValues(alpha: 0.75),
-                                  currentColor,
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: currentColor.withValues(alpha: 0.45),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, -3),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // 현재 퍼센트 - 바 내부 하단 고정
-                          Positioned(
-                            bottom: 10,
-                            child: Text(
-                              '${widget.currentPercentage}%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: widget.currentPercentage > 15
-                                    ? Colors.white
-                                    : currentColor,
-                                shadows: widget.currentPercentage > 15
-                                    ? [
-                                        Shadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.25),
-                                          blurRadius: 4,
-                                        )
-                                      ]
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ① 우측 눈금 (30 / 60 / 90)
-                ...thresholds.map((t) {
-                  final double bottomOffset = barHeight * (t.value / 100);
-                  return Positioned(
-                    bottom: bottomOffset - 5,
-                    left: markerAreaWidth + barWidth,
-                    child: SizedBox(
-                      width: tickAreaWidth,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 지시선
-                          Container(
-                            width: 8,
-                            height: 1.5,
-                            color: t.color.withValues(alpha: 0.85),
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${t.value}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: t.color.withValues(alpha: 0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // ── 현재 시간 안내 문구 : 막대(barWidth) 중앙에 정확히 맞춤 ──
-          // 텍스트 영역 제한을 풀고, Transform.translate로 물리적 중심을 이동
-          Transform.translate(
-            offset: const Offset((markerAreaWidth - tickAreaWidth) / 2, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.currentTime.isNotEmpty
-                      ? '${widget.currentTime} 기준'
-                      : '현재 위험도',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.gray400, // 필요시 Color(0xFF9E9E9E) 등으로 수정
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  '곰팡이 위험도',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.gray500, // 필요시 Color(0xFF757575) 등으로 수정
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ], // Stack/Column 종료 괄호들
-      ),
-    );
-  }
-
-  /// MAX 또는 MIN 마커 위젯
-  /// [bottom] = barHeight * percentage / 100 으로 Y 위치 결정
-  Widget _buildMarker({
-    required double barHeight,
-    required double markerAreaWidth,
-    required int percentage,
-    required String time,
-    required bool isMax,
-  }) {
-    // 마커 중앙을 percentage 높이에 맞춤
-    final double bottomOffset = barHeight * (percentage / 100);
-
-    // 시간 한 줄(12px) + 라벨 한 줄(12px) + 줄 간격 = 약 30px → 절반
-    const double markerHalfHeight = 15.0;
-
-    final Color markerColor = isMax
-        ? const Color(0xFFE55353) // 빨강 계열
-        : const Color(0xFF3B82F6); // 파랑 계열
-
-    final String label = isMax ? '최고' : '최저';
-
-    return Positioned(
-      bottom: bottomOffset - markerHalfHeight,
-      left: 0,
-      child: SizedBox(
-        width: markerAreaWidth,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 텍스트 (시간 + 라벨 + 퍼센트)
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (time.isNotEmpty)
-                    Text(
-                      '$time 기준', // "기준" 제거 → 너비 절약
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: markerColor.withValues(alpha: 0.8),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  Text(
-                    '$label $percentage%',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: markerColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 3),
-            // 지시선
-            Container(
-              width: 10,
-              height: 1.5,
-              color: markerColor,
-            ),
-          ],
-        ),
-      ),
-    );
+  bool shouldRepaint(covariant _SemiCircleGaugePainter oldDelegate) {
+    return oldDelegate.percentage != percentage ||
+        oldDelegate.color != color ||
+        oldDelegate.isBackground != isBackground;
   }
 }
 
-// 게이지 배경 페인터
-class _GaugeBackgroundPainter extends CustomPainter {
+// ─────────────────────────────────────────────────────────────
+//  계기판 바늘(Needle) 마커 페인터
+//  - 자동차 속도계 스타일의 뾰족한 바늘
+//  - MIN(파랑), MAX(빨강), NOW(위험도 색상) 3개 바늘
+//  - 바늘이 원호 중심을 향해 가리키는 방향으로 회전
+// ─────────────────────────────────────────────────────────────
+class _NeedleMarkerPainter extends CustomPainter {
+  final double gaugeSize;
+  final double strokeWidth;
+  final int? minPercentage;
+  final int? maxPercentage;
+  final Color minColor;
+  final Color maxColor;
+
+  _NeedleMarkerPainter({
+    required this.gaugeSize,
+    required this.strokeWidth,
+    required this.minPercentage,
+    required this.maxPercentage,
+    required this.minColor,
+    required this.maxColor,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
+    final center = Offset(size.width / 2, size.height);
+    final radius = size.width / 2 - strokeWidth / 2;
 
-    final colors = [
-      AppTheme.safe,
-      AppTheme.caution,
-      AppTheme.warning,
-      AppTheme.danger,
-    ];
+    // MIN 바늘
+    if (minPercentage != null) {
+      _drawNeedle(
+        canvas,
+        center,
+        radius,
+        percentage: minPercentage!,
+        color: minColor,
+        needleLength: 23,
+        needleWidth: 5,
+        label: 'MIN',
+      );
+    }
 
-    for (int i = 0; i < 4; i++) {
-      final paint = Paint()
-        ..color = colors[i].withOpacity(0.2)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 20
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - 15),
-        -math.pi / 2 + (i * math.pi / 2),
-        math.pi / 2,
-        false,
-        paint,
+    // MAX 바늘
+    if (maxPercentage != null) {
+      _drawNeedle(
+        canvas,
+        center,
+        radius,
+        percentage: maxPercentage!,
+        color: maxColor,
+        needleLength: 23,
+        needleWidth: 5,
+        label: 'MAX',
       );
     }
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+  void _drawNeedle(
+    Canvas canvas,
+    Offset center,
+    double radius, {
+    required int percentage,
+    required Color color,
+    required double needleLength,
+    required double needleWidth,
+    required String label,
+  }) {
+    // 각도 계산: 좌측(0%) = π, 우측(100%) = 2π
+    final angle = math.pi + (percentage / 100) * math.pi;
 
-// 게이지 채움 페인터
-class _GaugeFillPainter extends CustomPainter {
-  final int percentage;
-  final Color color;
+    // 바늘 꼭짓점 (게이지 바 바깥 가장자리에 위치)
+    final tipRadius = radius + strokeWidth / 2;
+    final tipX = center.dx + tipRadius * math.cos(angle);
+    final tipY = center.dy + tipRadius * math.sin(angle);
 
-  _GaugeFillPainter({required this.percentage, required this.color});
+    // 바늘 밑변 (게이지 바 안쪽으로 뻗음, 중심 방향)
+    final baseRadius = tipRadius - needleLength;
+    final baseX = center.dx + baseRadius * math.cos(angle);
+    final baseY = center.dy + baseRadius * math.sin(angle);
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
-      ..strokeCap = StrokeCap.round;
-
-    final sweepAngle = (percentage / 100) * 2 * math.pi;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius - 15),
-      -math.pi / 2,
-      sweepAngle,
-      false,
-      paint,
+    // 밑변 양 끝 (각도에 수직으로 폭 생성)
+    final perpAngle = angle + math.pi / 2;
+    final halfWidth = needleWidth / 2;
+    final baseLeft = Offset(
+      baseX + halfWidth * math.cos(perpAngle),
+      baseY + halfWidth * math.sin(perpAngle),
     );
+    final baseRight = Offset(
+      baseX - halfWidth * math.cos(perpAngle),
+      baseY - halfWidth * math.sin(perpAngle),
+    );
+
+    // 이등변 삼각형 바늘 그리기 (바깥→안쪽 방향)
+    final needlePath = Path()
+      ..moveTo(tipX, tipY) // 뾰족한 끝 (바 바깥 가장자리)
+      ..lineTo(baseLeft.dx, baseLeft.dy) // 밑변 왼쪽 (안쪽)
+      ..lineTo(baseRight.dx, baseRight.dy) // 밑변 오른쪽 (안쪽)
+      ..close();
+
+    // 바늘 채우기
+    final needlePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(needlePath, needlePaint);
+
+    // 바늘 테두리
+    final borderPaint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    canvas.drawPath(needlePath, borderPaint);
+
+    // 바늘 밑변 중앙에 동그란 핀 (작은 원)
+    const pinRadius = 3.0;
+    final pinPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(baseX, baseY), pinRadius, pinPaint);
+
+    // 핀 위에 흰색 점
+    final pinHighlight = Paint()
+      ..color = Colors.white.withValues(alpha: 0.7)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(baseX, baseY), pinRadius * 0.4, pinHighlight);
+
+    // 라벨 텍스트 (게이지 바 안쪽 영역에 표시)
+    if (label.isNotEmpty) {
+      final textSpan = TextSpan(
+        text: label,
+        style: TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      )..layout();
+
+      // 핀에서 안쪽으로 더 들어간 위치
+      final labelRadius = baseRadius - 10;
+      final labelX = center.dx + labelRadius * math.cos(angle);
+      final labelY = center.dy + labelRadius * math.sin(angle);
+
+      canvas.save();
+      canvas.translate(
+        labelX - textPainter.width / 2,
+        labelY - textPainter.height / 2,
+      );
+      textPainter.paint(canvas, Offset.zero);
+      canvas.restore();
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _NeedleMarkerPainter oldDelegate) {
+    return oldDelegate.minPercentage != minPercentage ||
+        oldDelegate.maxPercentage != maxPercentage;
+  }
 }
