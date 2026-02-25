@@ -26,6 +26,10 @@ class HomeScreenState extends State<HomeScreen>
   bool _isLoading = true;
   String? _errorMessage;
 
+  // 새로고침 쓰로틀링 (최소 30초 간격)
+  DateTime? _lastRefreshTime;
+  static const _minRefreshInterval = Duration(seconds: 30);
+
   // 게이지 애니메이션
   late AnimationController _gaugeAnimController;
   late Animation<double> _gaugeAnimation;
@@ -54,16 +58,27 @@ class HomeScreenState extends State<HomeScreen>
   }
 
   /// 외부에서 홈 화면 데이터를 새로고침할 수 있는 메서드
-  Future<void> refresh() => _loadHomeInfo();
+  Future<void> refresh() => _loadHomeInfo(force: true);
 
-  Future<void> _loadHomeInfo() async {
+  Future<void> _loadHomeInfo({bool force = false}) async {
+    // 쓰로틀링: 마지막 요청 후 30초 이내면 캐시된 데이터 유지
+    if (!force && _lastRefreshTime != null && _homeInfo != null) {
+      final elapsed = DateTime.now().difference(_lastRefreshTime!);
+      if (elapsed < _minRefreshInterval) {
+        debugPrint(
+            '[HomeScreen] 새로고침 스킵 (${elapsed.inSeconds}초 전 요청됨, 최소 ${_minRefreshInterval.inSeconds}초 간격)');
+        return;
+      }
+    }
+
     setState(() {
-      _isLoading = true;
+      _isLoading = _homeInfo == null; // 첫 로드일 때만 로딩 표시
       _errorMessage = null;
     });
 
     try {
       final homeInfo = await _homeService.getHomeInfo();
+      _lastRefreshTime = DateTime.now();
       if (mounted) {
         setState(() {
           _homeInfo = homeInfo;
@@ -74,7 +89,7 @@ class HomeScreenState extends State<HomeScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = '데이터를 불러올 수 없습니다';
+          _errorMessage = _homeInfo == null ? '데이터를 불러올 수 없습니다' : null;
           _isLoading = false;
         });
       }

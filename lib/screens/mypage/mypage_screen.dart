@@ -38,6 +38,10 @@ class _MypageScreenState extends State<MypageScreen> {
   bool _isProcessing = false; // CRUD 작업 중 로딩 상태
   String? _errorMessage;
 
+  // 새로고침 쓰로틀링 (최소 30초 간격)
+  DateTime? _lastLoadTime;
+  static const _minLoadInterval = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
@@ -74,14 +78,24 @@ class _MypageScreenState extends State<MypageScreen> {
     }
   }
 
-  Future<void> _loadDiagnosisHistory() async {
+  Future<void> _loadDiagnosisHistory({bool force = false}) async {
+    // 쓰로틀링: 마지막 요청 후 30초 이내면 스킵
+    if (!force && _lastLoadTime != null && _diagnosisRecords.isNotEmpty) {
+      final elapsed = DateTime.now().difference(_lastLoadTime!);
+      if (elapsed < _minLoadInterval) {
+        debugPrint('[MypageScreen] 진단기록 새로고침 스킵 (${elapsed.inSeconds}초 전 요청됨)');
+        return;
+      }
+    }
+
     setState(() {
-      _isLoading = true;
+      _isLoading = _diagnosisRecords.isEmpty; // 첫 로드일 때만 로딩 표시
       _errorMessage = null;
     });
 
     try {
       final records = await _myPageService.getDiagnosisHistory();
+      _lastLoadTime = DateTime.now();
       if (mounted) {
         setState(() {
           _diagnosisRecords = records;
@@ -91,7 +105,7 @@ class _MypageScreenState extends State<MypageScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = '기록을 불러올 수 없습니다';
+          _errorMessage = _diagnosisRecords.isEmpty ? '기록을 불러올 수 없습니다' : null;
           _isLoading = false;
         });
       }
@@ -305,14 +319,6 @@ class _MypageScreenState extends State<MypageScreen> {
                         color: AppTheme.gray800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'heewon@kakao.com',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.gray500,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -335,7 +341,7 @@ class _MypageScreenState extends State<MypageScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '수정',
+                        '닉네임',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -488,7 +494,7 @@ class _MypageScreenState extends State<MypageScreen> {
               const Spacer(),
               // 새로고침 버튼
               GestureDetector(
-                onTap: _loadDiagnosisHistory,
+                onTap: () => _loadDiagnosisHistory(force: true),
                 child: Icon(
                   Icons.refresh_rounded,
                   color: AppTheme.gray400,
@@ -664,7 +670,7 @@ class _MypageScreenState extends State<MypageScreen> {
 
   Widget _buildRecordList() {
     return RefreshIndicator(
-      onRefresh: _loadDiagnosisHistory,
+      onRefresh: () => _loadDiagnosisHistory(force: true),
       color: AppTheme.mintPrimary,
       child: ListView.builder(
         controller: _recordListScrollController,
@@ -898,14 +904,18 @@ class _MypageScreenState extends State<MypageScreen> {
                                 child: Image.network(
                                   detail.displayImagePath,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
                                     return Center(
                                       child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes !=
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
                                                 null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                loadingProgress.expectedTotalBytes!
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
                                             : null,
                                         color: AppTheme.mintPrimary,
                                       ),
@@ -916,9 +926,11 @@ class _MypageScreenState extends State<MypageScreen> {
                                       color: AppTheme.gray100,
                                       child: const Center(
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            Text('🦠', style: TextStyle(fontSize: 48)),
+                                            Text('🦠',
+                                                style: TextStyle(fontSize: 48)),
                                             SizedBox(height: 8),
                                             Text(
                                               '이미지를 불러올 수 없습니다',

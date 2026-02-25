@@ -11,6 +11,10 @@ class NotificationProvider with ChangeNotifier {
   bool _notificationEnabled = true;
   int _unreadCount = 0;
 
+  // 새로고침 쓰로틀링 (최소 30초 간격)
+  DateTime? _lastFetchTime;
+  static const _minFetchInterval = Duration(seconds: 30);
+
   List<NotificationItem> get notifications => _notifications;
   bool get isLoading => _isLoading;
   bool get notificationEnabled => _notificationEnabled;
@@ -19,7 +23,18 @@ class NotificationProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   /// 알림 목록 불러오기
-  Future<void> fetchNotifications({int limit = 50, int offset = 0}) async {
+  Future<void> fetchNotifications(
+      {int limit = 50, int offset = 0, bool force = false}) async {
+    // 쓰로틀링: 마지막 요청 후 30초 이내면 스킵
+    if (!force && _lastFetchTime != null && _notifications.isNotEmpty) {
+      final elapsed = DateTime.now().difference(_lastFetchTime!);
+      if (elapsed < _minFetchInterval) {
+        debugPrint(
+            '[NotificationProvider] 알림 조회 스킵 (${elapsed.inSeconds}초 전 요청됨)');
+        return;
+      }
+    }
+
     _isLoading = true;
     notifyListeners();
 
@@ -34,6 +49,7 @@ class NotificationProvider with ChangeNotifier {
           data.map((json) => NotificationItem.fromJson(json)).toList();
 
       _updateUnreadCount();
+      _lastFetchTime = DateTime.now();
       debugPrint('✅ 알림 ${_notifications.length}개 로드 완료');
     } catch (e) {
       debugPrint('❌ 알림 목록 조회 실패: $e');
