@@ -108,6 +108,27 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // 좌측 버튼: 위험도 상태 아이콘
+  String _getRiskStatusIcon() {
+    if (_riskPercentage <= 30) return 'assets/images/icons/risk_safe.png';
+    if (_riskPercentage <= 60) return 'assets/images/icons/risk_caution.png';
+    if (_riskPercentage <= 90) return 'assets/images/icons/risk_warning.png';
+    return 'assets/images/icons/risk_danger.png';
+  }
+
+  // 우측 버튼: 권장 행동 아이콘
+  String _getActionIcon() {
+    if (_riskPercentage <= 30) return 'assets/images/icons/ventilation_off.png';
+    if (_riskPercentage <= 90) return 'assets/images/icons/ventilation_on.png';
+    return 'assets/images/icons/dehumidifier.png';
+  }
+
+  // 우측 버튼 라벨
+  String _getActionLabel() {
+    if (_riskPercentage > 90) return '제습';
+    return '환기';
+  }
+
   // 위험도에 따른 메시지 반환
   String _getRiskMessage() {
     // 40% 이상이면 주의 메시지 표시
@@ -510,13 +531,30 @@ class HomeScreenState extends State<HomeScreen>
               ],
             ),
             const SizedBox(height: 2),
-            Text(
-              '$_riskPercentage%',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: riskColor,
-              ),
+            // ── 좌측 위험도 아이콘 + 퍼센트 + 우측 환기/제습 아이콘 ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildCircularIconButton(
+                  imagePath: _getRiskStatusIcon(),
+                  label: '위험',
+                ),
+                const SizedBox(width: 20),
+                Text(
+                  '$_riskPercentage%',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: riskColor,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                _buildCircularIconButton(
+                  imagePath: _getActionIcon(),
+                  label: _getActionLabel(),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -574,6 +612,68 @@ class HomeScreenState extends State<HomeScreen>
         ),
       );
     }).toList();
+  }
+
+  // 원형 아이콘 버튼 (위험도/환기 표시용)
+  Widget _buildCircularIconButton({
+    required String imagePath,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              border: Border.all(
+                color: AppTheme.gray200,
+                width: 1,
+              ),
+            ),
+            child: ClipOval(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Image.asset(
+                  imagePath,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 24,
+                      color: AppTheme.gray400,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // MAX/MIN 칩 (고정 색상: 최고=빨강, 최저=파랑)

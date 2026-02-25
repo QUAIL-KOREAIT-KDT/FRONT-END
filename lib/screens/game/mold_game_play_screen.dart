@@ -23,7 +23,6 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   Timer? _timer;
   int? _startRow, _startCol;
   Set<MoldTileModel> _poppingTiles = {};
-  bool _isPopping = false; // 팝 애니메이션 진행 중 플래그
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   int _highScore = 0;
@@ -79,7 +78,6 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
         highScore: _highScore,
       );
       _poppingTiles = {};
-      _isPopping = false;
     });
 
     _startTimer();
@@ -254,8 +252,7 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
 
     final selectedTiles = _gameState.selectedTiles;
 
-    if (!_isPopping &&
-        selectedTiles.length >= 2 &&
+    if (selectedTiles.length >= 2 &&
         GameLogic.isSumTen(selectedTiles)) {
       _popTiles(selectedTiles);
     }
@@ -268,8 +265,6 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
   }
 
   void _popTiles(Set<MoldTileModel> tiles) {
-    _isPopping = true;
-
     // 점수 계산
     final combo = _gameState.combo + 1;
     final score = GameLogic.calculateScore(tiles.length, combo);
@@ -303,7 +298,6 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen>
 
       setState(() {
         _poppingTiles = {};
-        _isPopping = false;
       });
 
       // 올클리어 체크

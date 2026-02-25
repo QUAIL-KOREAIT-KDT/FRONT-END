@@ -5,7 +5,7 @@ class AppConstants {
   // 환경 모드 (빌드 시 --dart-define=PRODUCTION=true로 설정)
   static const bool isProduction = bool.fromEnvironment(
     'PRODUCTION',
-    defaultValue: false, // 기본값은 개발 모드
+    defaultValue: false,
   );
 
   // API URLs - 환경별 자동 설정

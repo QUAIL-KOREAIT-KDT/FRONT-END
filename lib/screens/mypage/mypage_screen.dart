@@ -105,7 +105,7 @@ class _MypageScreenState extends State<MypageScreen> {
     '주방': 'kitchen',
     '욕실': 'bathroom',
     '음식': 'food',
-    '기타': 'living_room',
+    '기타': 'other',
   };
 
   /// 곰팡이 결과 코드 → 한글명 매핑

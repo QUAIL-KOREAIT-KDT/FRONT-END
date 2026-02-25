@@ -414,6 +414,7 @@ class DiagnosisResultScreen extends StatelessWidget {
       'living_room': '거실',
       'sink': '싱크대',
       'toilet': '변기',
+      'other': '기타',
     };
     return mapping[location] ?? location;
   }

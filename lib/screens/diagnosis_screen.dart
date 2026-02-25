@@ -198,111 +198,120 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
                 // 헤더
                 _buildHeader(),
 
-                // 본문
+                // 본문 (스크롤 가능하게 변경 - 작은 화면/큰 폰트 대응)
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    child: Column(
-                      children: [
-                        // 업로드 영역
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppTheme.mintLight,
-                                  AppTheme.pinkLight
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(32),
-                              border: Border.all(
-                                color: AppTheme.mintMedium,
-                                width: 3,
-                                strokeAlign: BorderSide.strokeAlignInside,
-                              ),
-                            ),
-                            child: _selectedImage != null
-                                ? _buildImagePreview()
-                                : _buildUploadPlaceholder(),
-                          ),
-                        ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // 남은 공간의 높이에서 업로드 영역 최소 높이 계산
+                      final availableHeight = constraints.maxHeight;
+                      // 업로드 영역: 전체 높이의 45% ~ 최소 200
+                      final uploadHeight =
+                          (availableHeight * 0.45).clamp(200.0, 500.0);
 
-                        const SizedBox(height: 20),
-
-                        // 장소 선택
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppTheme.gray100,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Text(
-                                '곰팡이가 발생한 장소를 선택해주세요',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.gray700,
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                        child: Column(
+                          children: [
+                            // 업로드 영역 (고정 높이로 변경, 스크롤 가능)
+                            Container(
+                              width: double.infinity,
+                              height: uploadHeight,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppTheme.mintLight,
+                                    AppTheme.pinkLight
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(32),
+                                border: Border.all(
+                                  color: AppTheme.mintMedium,
+                                  width: 3,
+                                  strokeAlign: BorderSide.strokeAlignInside,
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Center(
-                                child: Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  alignment: WrapAlignment.center,
-                                  children: List.generate(
-                                    AppConstants.locationOptions.length,
-                                    (index) => _buildLocationChip(index),
+                              child: _selectedImage != null
+                                  ? _buildImagePreview()
+                                  : _buildUploadPlaceholder(),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // 장소 선택
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: AppTheme.gray100,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    '곰팡이가 발생한 장소를 선택해주세요',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.gray700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Center(
+                                    child: Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      alignment: WrapAlignment.center,
+                                      children: List.generate(
+                                        AppConstants.locationOptions.length,
+                                        (index) => _buildLocationChip(index),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // 분석하기 버튼
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: (_selectedImage != null &&
+                                        _isLocationSelected &&
+                                        !_isLoading)
+                                    ? _analyzeMold
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.mintPrimary,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: AppTheme.gray200,
+                                  disabledForegroundColor: AppTheme.gray400,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                                child: Text(
+                                  _selectedImage == null
+                                      ? '사진을 먼저 선택해주세요'
+                                      : !_isLocationSelected
+                                          ? '장소를 선택해주세요'
+                                          : '분석하기',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // 분석하기 버튼
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: (_selectedImage != null &&
-                                    _isLocationSelected &&
-                                    !_isLoading)
-                                ? _analyzeMold
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.mintPrimary,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: AppTheme.gray200,
-                              disabledForegroundColor: AppTheme.gray400,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
                             ),
-                            child: Text(
-                              _selectedImage == null
-                                  ? '사진을 먼저 선택해주세요'
-                                  : !_isLocationSelected
-                                      ? '장소를 선택해주세요'
-                                      : '분석하기',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],

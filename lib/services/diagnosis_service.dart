@@ -17,7 +17,7 @@ const Map<String, String> locationToApiValue = {
   '거실': 'living_room',
   '싱크대': 'sink',
   '변기': 'toilet',
-  '기타': 'living_room', // 기타는 거실로 매핑
+  '기타': 'other',
 };
 
 /// 진단 결과 응답 모델 (백엔드 DiagnosisResponse와 일치)

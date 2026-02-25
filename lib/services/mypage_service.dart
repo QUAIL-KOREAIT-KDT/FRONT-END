@@ -51,6 +51,7 @@ class DiagnosisThumbnail {
       'living_room': '거실',
       'sink': '싱크대',
       'toilet': '변기',
+      'other': '기타',
     };
     return mapping[moldLocation] ?? moldLocation;
   }
@@ -128,6 +129,7 @@ class DiagnosisDetail {
       'living_room': '거실',
       'sink': '싱크대',
       'toilet': '변기',
+      'other': '기타',
     };
     return mapping[moldLocation] ?? moldLocation;
   }

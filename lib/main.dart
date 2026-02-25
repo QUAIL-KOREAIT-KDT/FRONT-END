@@ -11,8 +11,6 @@ import 'config/theme.dart';
 import 'config/routes.dart';
 import 'providers/auth_provider.dart';
 import 'providers/user_provider.dart';
-import 'providers/mold_risk_provider.dart';
-import 'providers/weather_provider.dart';
 import 'providers/iot_provider.dart';
 import 'providers/dictionary_provider.dart';
 import 'providers/notification_provider.dart';
@@ -71,8 +69,6 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => MoldRiskProvider()),
-        ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(create: (_) => IotProvider()),
         ChangeNotifierProvider(create: (_) => DictionaryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
@@ -83,6 +79,18 @@ class MyApp extends StatelessWidget {
         initialRoute: AppRoutes.splash,
         routes: AppRoutes.routes,
         debugShowCheckedModeBanner: false,
+        // 시스템 폰트 크기 설정이 너무 크거나 작을 때 UI 깨짐 방지
+        builder: (context, child) {
+          final mediaQueryData = MediaQuery.of(context);
+          final clampedTextScaler = mediaQueryData.textScaler.clamp(
+            minScaleFactor: 0.8,
+            maxScaleFactor: 1.2,
+          );
+          return MediaQuery(
+            data: mediaQueryData.copyWith(textScaler: clampedTextScaler),
+            child: child!,
+          );
+        },
       ),
     );
   }
