@@ -131,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                     children: [
                       // 캐릭터 로고
                       Image.asset(
-                        'assets/images/character/pangpangpang_logo_small.png',
+                        'assets/images/character/pangpangpang_logo_small.webp',
                         width: 150,
                         height: 150,
                         fit: BoxFit.contain,

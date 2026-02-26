@@ -66,6 +66,7 @@ flutter:
     - assets/images/character/
     - assets/images/mold/
     - assets/images/icons/
+    - assets/images/sign/
     - assets/icons/
     - assets/animations/
     - assets/game/

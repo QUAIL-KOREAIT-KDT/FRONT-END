@@ -48,7 +48,7 @@ class MoldTile extends StatelessWidget {
                     : null,
               ),
               child: Image.asset(
-                'assets/game/mold.png',
+                'assets/game/mold.webp',
                 width: tileSize,
                 height: tileSize,
                 fit: BoxFit.contain, // contain으로 정원형 유지
@@ -232,7 +232,7 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
                 child: Opacity(
                   opacity: _opacityAnimation.value.clamp(0.0, 1.0),
                   child: Image.asset(
-                    'assets/game/mold.png',
+                    'assets/game/mold.webp',
                     width: widget.tileSize,
                     height: widget.tileSize,
                     fit: BoxFit.contain, // contain으로 정원형 유지

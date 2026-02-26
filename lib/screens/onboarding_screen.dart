@@ -155,7 +155,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Image.asset(
-                          'assets/images/character/pangpangpang_logo_small.png',
+                          'assets/images/character/pangpangpang_logo_small.webp',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Column(
@@ -245,7 +245,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : () => _submitOnboarding(context),
+                    onPressed:
+                        _isSubmitting ? null : () => _submitOnboarding(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.mintPrimary,
                       foregroundColor: Colors.white,

@@ -113,29 +113,29 @@ class HomeScreenState extends State<HomeScreen>
   // 위험도에 따른 이미지 반환
   String _getRiskImage() {
     if (_riskPercentage <= 30) {
-      return 'assets/images/character/pang_low.png';
+      return 'assets/images/character/pang_low.webp';
     } else if (_riskPercentage <= 60) {
-      return 'assets/images/character/pang_middle.png';
+      return 'assets/images/character/pang_middle.webp';
     } else if (_riskPercentage <= 90) {
-      return 'assets/images/character/pang_middle_high.png';
+      return 'assets/images/character/pang_middle_high.webp';
     } else {
-      return 'assets/images/character/pang_high.png';
+      return 'assets/images/character/pang_high.webp';
     }
   }
 
   // 좌측 버튼: 위험도 상태 아이콘
   String _getRiskStatusIcon() {
-    if (_riskPercentage <= 30) return 'assets/images/icons/risk_safe.png';
-    if (_riskPercentage <= 60) return 'assets/images/icons/risk_caution.png';
-    if (_riskPercentage <= 90) return 'assets/images/icons/risk_warning.png';
-    return 'assets/images/icons/risk_danger.png';
+    if (_riskPercentage <= 30) return 'assets/images/sign/risk_safe.webp';
+    if (_riskPercentage <= 60) return 'assets/images/sign/risk_caution.webp';
+    if (_riskPercentage <= 90) return 'assets/images/sign/risk_warning.webp';
+    return 'assets/images/sign/risk_danger.webp';
   }
 
   // 우측 버튼: 권장 행동 아이콘
   String _getActionIcon() {
-    if (_riskPercentage <= 30) return 'assets/images/icons/ventilation_off.png';
-    if (_riskPercentage <= 90) return 'assets/images/icons/ventilation_on.png';
-    return 'assets/images/icons/dehumidifier.png';
+    if (_riskPercentage <= 30) return 'assets/images/sign/ventilation_off.png';
+    if (_riskPercentage <= 90) return 'assets/images/sign/ventilation_on.png';
+    return 'assets/images/sign/dehumidifier.png';
   }
 
   // 우측 버튼 라벨
@@ -555,7 +555,7 @@ class HomeScreenState extends State<HomeScreen>
                   imagePath: _getRiskStatusIcon(),
                   label: '위험',
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 36),
                 Text(
                   '$_riskPercentage%',
                   style: TextStyle(
@@ -564,7 +564,7 @@ class HomeScreenState extends State<HomeScreen>
                     color: riskColor,
                   ),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 36),
                 _buildCircularIconButton(
                   imagePath: _getActionIcon(),
                   label: _getActionLabel(),
@@ -641,8 +641,8 @@ class HomeScreenState extends State<HomeScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -660,16 +660,16 @@ class HomeScreenState extends State<HomeScreen>
             ),
             child: ClipOval(
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(6),
                 child: Image.asset(
                   imagePath,
-                  width: 36,
-                  height: 36,
+                  width: 60,
+                  height: 60,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
                       Icons.image_not_supported_outlined,
-                      size: 24,
+                      size: 32,
                       color: AppTheme.gray400,
                     );
                   },

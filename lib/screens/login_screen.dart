@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Padding(
                                   padding: const EdgeInsets.all(20),
                                   child: Image.asset(
-                                    'assets/images/character/pangpangpang_logo_small.png',
+                                    'assets/images/character/pangpangpang_logo_small.webp',
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
                                       return const Center(
@@ -195,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             Image.asset(
-                                              'assets/icons/kakao_logo.png',
+                                              'assets/icons/kakao_logo.webp',
                                               width: 24,
                                               height: 24,
                                               errorBuilder:
