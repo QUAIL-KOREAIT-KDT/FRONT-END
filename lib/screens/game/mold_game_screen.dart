@@ -55,32 +55,25 @@ class MoldGameScreen extends StatelessWidget {
   Widget _buildGameLogo() {
     return Column(
       children: [
-        // 곰팡이 아이콘 (임시)
-        Container(
+        // 팡팡팡 로고 이미지
+        Image.asset(
+          'assets/images/character/pangpangpang_logo_small.webp',
           width: 120,
           height: 120,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.mintLight,
-                AppTheme.mintPrimary,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.mintPrimary.withOpacity(0.3),
-                blurRadius: 20,
-                spreadRadius: 5,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.mintLight, AppTheme.mintPrimary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              '🍄',
-              style: TextStyle(fontSize: 60),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('🍄', style: TextStyle(fontSize: 60)),
             ),
           ),
         ),

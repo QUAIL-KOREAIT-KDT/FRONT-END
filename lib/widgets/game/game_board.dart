@@ -10,6 +10,7 @@ class GameBoard extends StatefulWidget {
   final List<List<MoldTileModel?>> board;
   final Set<MoldTileModel> selectedTiles;
   final Set<MoldTileModel> poppingTiles;
+  final Set<int> spawningTileIds; // 스폰 중인 타일 ID 집합
   final int currentSum;
   final Function(int startRow, int startCol)? onDragStart;
   final Function(int endRow, int endCol)? onDragUpdate;
@@ -20,6 +21,7 @@ class GameBoard extends StatefulWidget {
     required this.board,
     this.selectedTiles = const {},
     this.poppingTiles = const {},
+    this.spawningTileIds = const {},
     this.currentSum = 0,
     this.onDragStart,
     this.onDragUpdate,
@@ -104,6 +106,8 @@ class _GameBoardState extends State<GameBoard> {
                                           widget.selectedTiles.contains(tile),
                                       shouldPop:
                                           widget.poppingTiles.contains(tile),
+                                      isSpawning: widget.spawningTileIds
+                                          .contains(tile.id),
                                       tileSize: _tileSize,
                                     ),
                             );

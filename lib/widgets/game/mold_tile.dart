@@ -84,6 +84,7 @@ class AnimatedMoldTile extends StatefulWidget {
   final bool isSelected;
   final double tileSize; // 정사각형 크기
   final bool shouldPop;
+  final bool isSpawning; // 새로 생성되는 타일 (페이드인)
   final VoidCallback? onPopComplete;
 
   const AnimatedMoldTile({
@@ -92,6 +93,7 @@ class AnimatedMoldTile extends StatefulWidget {
     this.isSelected = false,
     this.tileSize = 32,
     this.shouldPop = false,
+    this.isSpawning = false,
     this.onPopComplete,
   });
 
@@ -100,12 +102,19 @@ class AnimatedMoldTile extends StatefulWidget {
 }
 
 class _AnimatedMoldTileState extends State<AnimatedMoldTile>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  // ── 팝(낙하) 애니메이션 ──
   late AnimationController _controller;
   late Animation<double> _fallAnimation;
   late Animation<double> _wobbleAnimation;
   late Animation<double> _opacityAnimation;
   late Animation<double> _horizontalDriftAnimation;
+
+  // ── 스폰(페이드인) 애니메이션 ──
+  late AnimationController _spawnController;
+  late Animation<double> _spawnOpacity;
+  late Animation<double> _spawnScale;
+  bool _isSpawning = false;
 
   // 깜빡임 방지: 애니메이션 완료 상태 추적
   bool _isAnimationCompleted = false;
@@ -169,6 +178,34 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
         widget.onPopComplete?.call();
       }
     });
+
+    // ── 스폰 애니메이션 초기화 ──
+    _spawnController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _spawnOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _spawnController, curve: Curves.easeOut),
+    );
+    _spawnScale = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(parent: _spawnController, curve: Curves.elasticOut),
+    );
+
+    if (widget.isSpawning) {
+      _isSpawning = true;
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          _spawnController.forward();
+          _spawnController.addStatusListener((status) {
+            if (status == AnimationStatus.completed && mounted) {
+              setState(() => _isSpawning = false);
+            }
+          });
+        }
+      });
+    } else {
+      _spawnController.value = 1.0; // 기존 타일은 애니메이션 없이 바로 표시
+    }
   }
 
   @override
@@ -197,6 +234,7 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
   @override
   void dispose() {
     _controller.dispose();
+    _spawnController.dispose();
     super.dispose();
   }
 
@@ -213,8 +251,10 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
     }
 
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _spawnController]),
       builder: (context, child) {
+        Widget tileWidget;
+
         if (widget.shouldPop) {
           // 나뭇잎 떨어지기: translate + rotate + opacity
           final wobbleAngle =
@@ -222,7 +262,7 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
           final dx = _horizontalDriftAnimation.value * _driftAmount;
           final dy = _fallAnimation.value;
 
-          return SizedBox(
+          tileWidget = SizedBox(
             width: widget.tileSize,
             height: widget.tileSize,
             child: Transform.translate(
@@ -235,18 +275,31 @@ class _AnimatedMoldTileState extends State<AnimatedMoldTile>
                     'assets/game/mold.webp',
                     width: widget.tileSize,
                     height: widget.tileSize,
-                    fit: BoxFit.contain, // contain으로 정원형 유지
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
           );
+        } else {
+          tileWidget = MoldTile(
+            tile: widget.tile,
+            isSelected: widget.isSelected,
+            tileSize: widget.tileSize,
+          );
         }
-        return MoldTile(
-          tile: widget.tile,
-          isSelected: widget.isSelected,
-          tileSize: widget.tileSize,
-        );
+
+        // 스폰 중이면 페이드인 + 스케일업 적용
+        if (_isSpawning) {
+          return Transform.scale(
+            scale: _spawnScale.value,
+            child: Opacity(
+              opacity: _spawnOpacity.value.clamp(0.0, 1.0),
+              child: tileWidget,
+            ),
+          );
+        }
+        return tileWidget;
       },
     );
   }
