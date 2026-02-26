@@ -133,9 +133,9 @@ class HomeScreenState extends State<HomeScreen>
 
   // 우측 버튼: 권장 행동 아이콘
   String _getActionIcon() {
-    if (_riskPercentage <= 30) return 'assets/images/sign/ventilation_off.png';
-    if (_riskPercentage <= 90) return 'assets/images/sign/ventilation_on.png';
-    return 'assets/images/sign/dehumidifier.png';
+    if (_riskPercentage <= 30) return 'assets/images/sign/ventilation_off.webp';
+    if (_riskPercentage <= 90) return 'assets/images/sign/ventilation_on.webp';
+    return 'assets/images/sign/dehumidifier.webp';
   }
 
   // 우측 버튼 라벨
@@ -146,16 +146,15 @@ class HomeScreenState extends State<HomeScreen>
 
   // 위험도에 따른 메시지 반환
   String _getRiskMessage() {
-    // 40% 이상이면 주의 메시지 표시
-    if (_riskPercentage >= 40) {
-      if (_riskPercentage <= 60) {
-        return '곰팡이 주의가 필요해요! \n환기를 권장합니다.';
-      } else {
-        return '곰팡이 위험도가 높아요! \n즉시 환기해주세요.';
-      }
+    if (_riskPercentage > 90) {
+      return '곰팡이 위험도가 매우 높아요! \n즉시 제습하세요.';
+    } else if (_riskPercentage > 60) {
+      return '곰팡이 위험도가 높아요! \n즉시 환기해주세요.';
+    } else if (_riskPercentage > 30) {
+      return '곰팡이 주의가 필요해요! \n환기를 권장합니다.';
     }
-    // 40% 미만이면 안전 메시지
-    if (_homeInfo?.currentRisk?.message != null && _riskPercentage < 40) {
+    // 0~30%: API 메시지 사용
+    if (_homeInfo?.currentRisk?.message != null) {
       return _homeInfo!.currentRisk!.message;
     }
     return '현재 곰팡이로부터 안전한 환경입니다.';
@@ -553,13 +552,12 @@ class HomeScreenState extends State<HomeScreen>
               children: [
                 _buildCircularIconButton(
                   imagePath: _getRiskStatusIcon(),
-                  label: '위험',
                 ),
                 const SizedBox(width: 36),
                 Text(
                   '$_riskPercentage%',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 38,
                     fontWeight: FontWeight.w800,
                     color: riskColor,
                   ),
@@ -567,7 +565,6 @@ class HomeScreenState extends State<HomeScreen>
                 const SizedBox(width: 36),
                 _buildCircularIconButton(
                   imagePath: _getActionIcon(),
-                  label: _getActionLabel(),
                 ),
               ],
             ),
@@ -632,7 +629,6 @@ class HomeScreenState extends State<HomeScreen>
   // 원형 아이콘 버튼 (위험도/환기 표시용)
   Widget _buildCircularIconButton({
     required String imagePath,
-    required String label,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
@@ -665,7 +661,7 @@ class HomeScreenState extends State<HomeScreen>
                   imagePath,
                   width: 60,
                   height: 60,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
                       Icons.image_not_supported_outlined,
@@ -675,15 +671,6 @@ class HomeScreenState extends State<HomeScreen>
                   },
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.gray600,
             ),
           ),
         ],
@@ -730,7 +717,7 @@ class HomeScreenState extends State<HomeScreen>
                   ),
                   if (time.isNotEmpty)
                     Text(
-                      time,
+                      '$time 기준',
                       style: TextStyle(
                         fontSize: 12,
                         color: color.withValues(alpha: 0.7),
