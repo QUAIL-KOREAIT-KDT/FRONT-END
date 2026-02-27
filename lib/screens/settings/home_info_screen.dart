@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_icons.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../../services/user_service.dart';
@@ -41,10 +42,12 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
       if (user != null) {
         _selectedLocation = user.location ?? '';
         _addressController.text = _selectedLocation;
-        _selectedTemperature = (user.indoorTemperature ?? 22.0).clamp(15.0, 30.0);
+        _selectedTemperature =
+            (user.indoorTemperature ?? 22.0).clamp(15.0, 30.0);
         _selectedHumidity = (user.indoorHumidity ?? 50.0).clamp(20.0, 80.0);
         _isBasement = user.underground == 'semi-basement';
-        _selectedDirectionIndex = _apiValueToDirectionIndex(user.houseDirection);
+        _selectedDirectionIndex =
+            _apiValueToDirectionIndex(user.houseDirection);
       }
       _isInitLoading = false;
     });
@@ -86,71 +89,71 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
                           color: AppTheme.mintPrimary),
                     )
                   : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
 
-                    // 거주지 위치
-                    _buildLabel('📍 거주지 위치'),
-                    const SizedBox(height: 8),
-                    _buildAddressInput(),
-                    const SizedBox(height: 20),
+                          // 거주지 위치
+                          _buildLabel(AppIcons.location, '거주지 위치'),
+                          const SizedBox(height: 8),
+                          _buildAddressInput(),
+                          const SizedBox(height: 20),
 
-                    // 반지하 여부
-                    _buildLabel('🏠 반지하 여부'),
-                    const SizedBox(height: 8),
-                    _buildBasementSelector(),
-                    const SizedBox(height: 20),
+                          // 반지하 여부
+                          _buildLabel(AppIcons.home, '반지하 여부'),
+                          const SizedBox(height: 8),
+                          _buildBasementSelector(),
+                          const SizedBox(height: 20),
 
-                    // 평균 실내 온도
-                    _buildLabel('🌡️ 평균 실내 온도'),
-                    const SizedBox(height: 8),
-                    _buildTemperatureSlider(),
-                    const SizedBox(height: 20),
+                          // 평균 실내 온도
+                          _buildLabel(AppIcons.temperature, '평균 실내 온도'),
+                          const SizedBox(height: 8),
+                          _buildTemperatureSlider(),
+                          const SizedBox(height: 20),
 
-                    // 평균 실내 습도
-                    _buildLabel('💧 평균 실내 습도'),
-                    const SizedBox(height: 8),
-                    _buildHumiditySlider(),
-                    const SizedBox(height: 20),
+                          // 평균 실내 습도
+                          _buildLabel(AppIcons.humidity, '평균 실내 습도'),
+                          const SizedBox(height: 8),
+                          _buildHumiditySlider(),
+                          const SizedBox(height: 20),
 
-                    // 집 방향
-                    _buildLabel('🧭 집 방향'),
-                    const SizedBox(height: 8),
-                    _buildDirectionSelector(),
+                          // 집 방향
+                          _buildLabel(AppIcons.direction, '집 방향'),
+                          const SizedBox(height: 8),
+                          _buildDirectionSelector(),
 
-                    const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                    // 저장 버튼
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _saveInfo,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.mintPrimary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                          // 저장 버튼
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _saveInfo,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.mintPrimary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              child: const Text(
+                                '저장하기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '저장하기',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+
+                          const SizedBox(height: 40),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -174,10 +177,7 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
           const SizedBox(width: 8),
           const Row(
             children: [
-              Text(
-                '🏠',
-                style: TextStyle(fontSize: 24),
-              ),
+              Icon(AppIcons.homeInfo, size: 24, color: AppTheme.mintPrimary),
               SizedBox(width: 8),
               Text(
                 '집 정보 수정',
@@ -194,14 +194,20 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppTheme.gray700,
-      ),
+  Widget _buildLabel(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppTheme.mintPrimary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -585,12 +591,12 @@ class _HomeInfoScreenState extends State<HomeInfoScreen> {
         if (success) {
           // Provider 로컬 상태도 갱신 (서버 재요청 없이)
           context.read<UserProvider>().updateHomeInfo(
-            location: _selectedLocation,
-            indoorTemperature: _selectedTemperature,
-            indoorHumidity: _selectedHumidity,
-            houseDirection: _directionToApiValue(_selectedDirectionIndex),
-            underground: _basementToApiValue(_isBasement),
-          );
+                location: _selectedLocation,
+                indoorTemperature: _selectedTemperature,
+                indoorHumidity: _selectedHumidity,
+                houseDirection: _directionToApiValue(_selectedDirectionIndex),
+                underground: _basementToApiValue(_isBasement),
+              );
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

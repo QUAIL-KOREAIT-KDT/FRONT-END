@@ -15,6 +15,7 @@ import 'providers/iot_provider.dart';
 import 'providers/dictionary_provider.dart';
 import 'providers/notification_provider.dart';
 import 'services/notification_service.dart';
+import 'services/api_service.dart'; // navigatorKey
 
 /// 백그라운드 메시지 핸들러 (최상위 함수)
 @pragma('vm:entry-point')
@@ -74,6 +75,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: '팡팡팡',
         theme: AppTheme.lightTheme,
         initialRoute: AppRoutes.splash,

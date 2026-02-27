@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
+import '../../config/app_icons.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
@@ -236,10 +237,8 @@ class _MypageScreenState extends State<MypageScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                '👤',
-                style: TextStyle(fontSize: 28),
-              ),
+              const Icon(AppIcons.person,
+                  size: 28, color: AppTheme.mintPrimary),
               const SizedBox(width: 10),
               const Text(
                 '마이페이지',
@@ -470,10 +469,8 @@ class _MypageScreenState extends State<MypageScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              const Text(
-                '📋',
-                style: TextStyle(fontSize: 18),
-              ),
+              const Icon(AppIcons.diagnosisHistory,
+                  size: 18, color: AppTheme.mintPrimary),
               const SizedBox(width: 8),
               const Text(
                 '곰팡이 분석 기록',
@@ -824,7 +821,8 @@ class _MypageScreenState extends State<MypageScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Text('📋', style: TextStyle(fontSize: 24)),
+                        const Icon(AppIcons.detailModal,
+                            size: 24, color: AppTheme.mintPrimary),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -999,7 +997,8 @@ class _MypageScreenState extends State<MypageScreen> {
 
                           // 🔬 진단 결과
                           if (ragSolution.diagnosis.isNotEmpty) ...[
-                            _buildSectionTitle('🔬', '진단 결과'),
+                            _buildSectionTitle(
+                                AppIcons.sectionDiagnosis, '진단 결과'),
                             _buildSectionContent(ragSolution.diagnosis),
                             const SizedBox(height: 16),
                           ],
@@ -1007,7 +1006,8 @@ class _MypageScreenState extends State<MypageScreen> {
                           // 📍 발생 장소
                           if (ragSolution
                               .frequentlyVisitedAreas.isNotEmpty) ...[
-                            _buildSectionTitle('📍', '주요 발생 장소'),
+                            _buildSectionTitle(
+                                AppIcons.sectionLocation, '주요 발생 장소'),
                             ...ragSolution.frequentlyVisitedAreas
                                 .map((area) => _buildBulletItem(area)),
                             const SizedBox(height: 16),
@@ -1015,7 +1015,8 @@ class _MypageScreenState extends State<MypageScreen> {
 
                           // 💡 해결 방법
                           if (ragSolution.solutions.isNotEmpty) ...[
-                            _buildSectionTitle('💡', '해결 방법'),
+                            _buildSectionTitle(
+                                AppIcons.sectionSolution, '해결 방법'),
                             ...ragSolution.solutions
                                 .map((sol) => _buildBulletItem(sol)),
                             const SizedBox(height: 16),
@@ -1023,7 +1024,8 @@ class _MypageScreenState extends State<MypageScreen> {
 
                           // 🛡️ 예방법
                           if (ragSolution.preventions.isNotEmpty) ...[
-                            _buildSectionTitle('🛡️', '예방법'),
+                            _buildSectionTitle(
+                                AppIcons.sectionPrevention, '예방법'),
                             ...ragSolution.preventions
                                 .map((prev) => _buildBulletItem(prev)),
                             const SizedBox(height: 16),
@@ -1031,7 +1033,8 @@ class _MypageScreenState extends State<MypageScreen> {
 
                           // 🤖 AI 조언
                           if (ragSolution.insight.isNotEmpty) ...[
-                            _buildSectionTitle('🤖', 'AI 조언'),
+                            _buildSectionTitle(
+                                AppIcons.sectionAiAdvice, 'AI 조언'),
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -1105,12 +1108,12 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 
   /// 섹션 타이틀 위젯
-  Widget _buildSectionTitle(String emoji, String title) {
+  Widget _buildSectionTitle(IconData icon, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
+          Icon(icon, size: 18, color: AppTheme.mintPrimary),
           const SizedBox(width: 8),
           Text(
             title,

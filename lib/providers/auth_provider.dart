@@ -4,6 +4,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../config/constants.dart';
 
@@ -15,6 +16,19 @@ class AuthProvider extends ChangeNotifier {
 
   final _storage = const FlutterSecureStorage();
   final _authService = AuthService();
+
+  AuthProvider() {
+    // 강제 로그아웃(refresh 만료) 시 Provider 상태도 초기화
+    ApiService.onForceLogout = _handleForceLogout;
+  }
+
+  void _handleForceLogout() {
+    _user = null;
+    _isLoggedIn = false;
+    _isNewUser = false;
+    notifyListeners();
+    debugPrint('[AuthProvider] 강제 로그아웃 — 상태 초기화 완료');
+  }
 
   // ============================================================
   // 개발 모드 설정 - PRODUCTION 빌드 시 자동으로 false

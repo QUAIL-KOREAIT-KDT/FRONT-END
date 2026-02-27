@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_icons.dart';
 import '../config/theme.dart';
 import '../config/constants.dart';
 import '../models/mold_category.dart';
@@ -54,10 +55,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                '📚',
-                style: TextStyle(fontSize: 28),
-              ),
+              const Icon(AppIcons.dictionary,
+                  size: 28, color: AppTheme.mintPrimary),
               const SizedBox(width: 10),
               const Text(
                 '곰팡이 사전',
@@ -269,7 +268,9 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: category.gradientColors[0].computeLuminance() > 0.5
+                                color: category.gradientColors[0]
+                                            .computeLuminance() >
+                                        0.5
                                     ? AppTheme.gray600
                                     : category.gradientColors[0],
                               ),

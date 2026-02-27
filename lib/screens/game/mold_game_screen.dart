@@ -272,7 +272,26 @@ class MoldGameScreen extends StatelessWidget {
               _buildHelpItem('2', '묶은 곰팡이 숫자의 합이 10이 되면 터집니다'),
               _buildHelpItem('3', '2개: 10점, 3개: 30점, 4개: 60점'),
               _buildHelpItem('4', '5개 이상: 개수 × 20점'),
-              _buildHelpItem('5', '올클리어 시 보너스 500점!'),
+              _buildHelpItem('5', '연속으로 터뜨릴수록 콤보 점수가 올라갑니다'),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Text('⏱️', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '주의! 처음 곰팡이를 제거하면 빈 자리에 새 곰팡이가 6~8초마다 1마리씩 나타납니다.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.gray600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

@@ -70,6 +70,7 @@ flutter:
     - assets/icons/
     - assets/animations/
     - assets/game/
+    - assets/images/fortune/
 
 # 앱 아이콘 설정
 flutter_launcher_icons:

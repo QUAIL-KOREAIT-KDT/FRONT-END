@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_icons.dart';
 import '../../config/theme.dart';
 import '../../providers/iot_provider.dart';
 import '../../models/iot_device.dart';
@@ -67,10 +68,8 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          const Text(
-            '📡',
-            style: TextStyle(fontSize: 24),
-          ),
+          const Icon(AppIcons.iotSettings,
+              size: 24, color: AppTheme.mintPrimary),
           const SizedBox(width: 8),
           const Text(
             '스마트홈 연동',
@@ -373,9 +372,8 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: device.isOnline
-                            ? AppTheme.safe
-                            : AppTheme.gray400,
+                        color:
+                            device.isOnline ? AppTheme.safe : AppTheme.gray400,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -384,9 +382,8 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
                       device.isOnline ? '온라인' : '오프라인',
                       style: TextStyle(
                         fontSize: 13,
-                        color: device.isOnline
-                            ? AppTheme.safe
-                            : AppTheme.gray400,
+                        color:
+                            device.isOnline ? AppTheme.safe : AppTheme.gray400,
                       ),
                     ),
                     const SizedBox(width: 12),

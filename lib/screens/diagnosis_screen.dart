@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_icons.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
@@ -394,6 +395,8 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
         children: [
           Row(
             children: [
+              const Icon(AppIcons.diagnosis,
+                  size: 28, color: AppTheme.mintPrimary),
               const SizedBox(width: 10),
               const Text(
                 '곰팡이 진단',
@@ -652,7 +655,7 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
   }
 
   Widget _buildUploadButton({
-    required String icon,
+    required IconData icon,
     required String label,
     required bool isPrimary,
     required VoidCallback onTap,
@@ -669,7 +672,8 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
         ),
         child: Row(
           children: [
-            Text(icon, style: const TextStyle(fontSize: 16)),
+            Icon(icon,
+                size: 18, color: isPrimary ? Colors.white : AppTheme.gray600),
             const SizedBox(width: 8),
             Text(
               label,
@@ -735,14 +739,14 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildUploadButton(
-              icon: '📷',
+              icon: AppIcons.camera,
               label: '촬영',
               isPrimary: true,
               onTap: _takePhoto,
             ),
             const SizedBox(width: 12),
             _buildUploadButton(
-              icon: '🖼️',
+              icon: AppIcons.gallery,
               label: '앨범',
               isPrimary: false,
               onTap: _pickFromGallery,
@@ -800,14 +804,14 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildUploadButton(
-                  icon: '📷',
+                  icon: AppIcons.camera,
                   label: '다시 촬영',
                   isPrimary: true,
                   onTap: _takePhoto,
                 ),
                 const SizedBox(width: 12),
                 _buildUploadButton(
-                  icon: '🖼️',
+                  icon: AppIcons.gallery,
                   label: '앨범',
                   isPrimary: false,
                   onTap: _pickFromGallery,

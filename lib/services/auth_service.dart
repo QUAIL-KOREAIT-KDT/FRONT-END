@@ -5,6 +5,7 @@ import 'api_service.dart';
 /// 백엔드 로그인 응답 모델
 class AuthResponse {
   final String accessToken;
+  final String? refreshToken;
   final String tokenType;
   final int userId;
   final bool isNewUser;
@@ -12,6 +13,7 @@ class AuthResponse {
 
   AuthResponse({
     required this.accessToken,
+    this.refreshToken,
     required this.tokenType,
     required this.userId,
     required this.isNewUser,
@@ -21,6 +23,7 @@ class AuthResponse {
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     return AuthResponse(
       accessToken: json['access_token'],
+      refreshToken: json['refresh_token'],
       tokenType: json['token_type'],
       userId: json['user_id'],
       isNewUser: json['is_new_user'],
@@ -48,6 +51,10 @@ class AuthService {
 
       // JWT 토큰 저장
       await _apiService.saveToken(authResponse.accessToken);
+      // Refresh 토큰 저장
+      if (authResponse.refreshToken != null) {
+        await _apiService.saveRefreshToken(authResponse.refreshToken!);
+      }
 
       debugPrint(
           '[AuthService] 로그인 성공 - userId: ${authResponse.userId}, isNewUser: ${authResponse.isNewUser}');
@@ -59,9 +66,16 @@ class AuthService {
     }
   }
 
-  /// 로그아웃 (토큰 삭제)
+  /// 로그아웃 (서버에 로그아웃 요청 + 로컬 토큰 전제 삭제)
   Future<void> logout() async {
-    await _apiService.clearToken();
+    // 서버 로그아웃 (refresh DB 에서 삭제)
+    try {
+      await _apiService.dio.post('/auth/logout');
+      debugPrint('[AuthService] 서버 로그아웃 완료');
+    } catch (e) {
+      debugPrint('[AuthService] 서버 로그아웃 요청 실패 (무시): $e');
+    }
+    await _apiService.clearAllTokens();
     debugPrint('[AuthService] 로그아웃 완료');
   }
 
@@ -80,7 +94,7 @@ class AuthService {
       debugPrint('[AuthService] 회원 탈퇴 실패: ${e.response?.data}');
       throw _handleError(e);
     }
-    await _apiService.clearToken();
+    await _apiService.clearAllTokens();
   }
 
   /// 에러 핸들링
@@ -103,6 +117,10 @@ class AuthService {
 
       // JWT 토큰 저장
       await _apiService.saveToken(authResponse.accessToken);
+      // Refresh 토큰 저장
+      if (authResponse.refreshToken != null) {
+        await _apiService.saveRefreshToken(authResponse.refreshToken!);
+      }
 
       debugPrint('[AuthService] 개발용 로그인 성공 - userId: ${authResponse.userId}');
 

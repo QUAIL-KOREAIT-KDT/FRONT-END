@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import '../config/app_icons.dart';
 import '../config/theme.dart';
 import '../services/diagnosis_service.dart';
 
@@ -100,13 +101,21 @@ class DiagnosisResultScreen extends StatelessWidget {
             ),
           ),
         ),
-        title: const Text(
-          '📋 진단 결과',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.gray800,
-          ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(AppIcons.diagnosisResult,
+                size: 20, color: AppTheme.mintPrimary),
+            SizedBox(width: 8),
+            Text(
+              '진단 결과',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray800,
+              ),
+            ),
+          ],
         ),
       ),
       body: SingleChildScrollView(
@@ -255,7 +264,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // 진단 설명 섹션
             if (ragSolution.diagnosis.isNotEmpty)
               _buildSection(
-                icon: '🔬',
+                icon: AppIcons.sectionDiagnosis,
                 title: '진단 결과',
                 child: Text(
                   ragSolution.diagnosis,
@@ -270,7 +279,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // 주요 출몰 지역
             if (ragSolution.frequentlyVisitedAreas.isNotEmpty)
               _buildSection(
-                icon: '📍',
+                icon: AppIcons.sectionLocation,
                 title: '주요 발생 장소',
                 child: Wrap(
                   spacing: 8,
@@ -301,7 +310,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // 해결 방법 섹션
             if (ragSolution.solutions.isNotEmpty)
               _buildSection(
-                icon: '💡',
+                icon: AppIcons.sectionSolution,
                 title: '해결 방법',
                 child: Column(
                   children: List.generate(
@@ -318,7 +327,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // 예방법 섹션
             if (ragSolution.preventions.isNotEmpty)
               _buildSection(
-                icon: '🛡️',
+                icon: AppIcons.sectionPrevention,
                 title: '예방법',
                 child: Column(
                   children: List.generate(
@@ -335,7 +344,7 @@ class DiagnosisResultScreen extends StatelessWidget {
             // AI 인사이트 섹션
             if (ragSolution.insight.isNotEmpty)
               _buildSection(
-                icon: '🤖',
+                icon: AppIcons.sectionAiAdvice,
                 title: 'AI 전문가 조언',
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -371,7 +380,7 @@ class DiagnosisResultScreen extends StatelessWidget {
   }
 
   Widget _buildSection({
-    required String icon,
+    required IconData icon,
     required String title,
     required Widget child,
   }) {
@@ -382,7 +391,7 @@ class DiagnosisResultScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(icon, style: const TextStyle(fontSize: 16)),
+              Icon(icon, size: 18, color: AppTheme.mintPrimary),
               const SizedBox(width: 8),
               Text(
                 title,

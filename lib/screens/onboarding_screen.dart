@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 // 조건부 import: 웹에서는 stub, 네이티브에서는 kpostal 사용
 import 'address_search_stub.dart'
     if (dart.library.io) 'address_search_native.dart' as address_search;
+import '../config/app_icons.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
@@ -204,37 +205,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 28),
 
                 // 닉네임 입력
-                _buildLabel('👤 닉네임'),
+                _buildLabel(AppIcons.person, '닉네임'),
                 const SizedBox(height: 8),
                 _buildNicknameInput(),
                 const SizedBox(height: 20),
 
                 // 거주지 위치
-                _buildLabel('📍 거주지 위치'),
+                _buildLabel(AppIcons.location, '거주지 위치'),
                 const SizedBox(height: 8),
                 _buildAddressInput(),
                 const SizedBox(height: 20),
 
                 // 반지하 여부
-                _buildLabel('🏠 반지하 여부'),
+                _buildLabel(AppIcons.home, '반지하 여부'),
                 const SizedBox(height: 8),
                 _buildBasementSelector(),
                 const SizedBox(height: 20),
 
                 // 평균 실내 온도
-                _buildLabel('🌡️ 평균 실내 온도'),
+                _buildLabel(AppIcons.temperature, '평균 실내 온도'),
                 const SizedBox(height: 8),
                 _buildTemperatureSlider(),
                 const SizedBox(height: 20),
 
                 // 평균 실내 습도 (선택사항)
-                _buildLabel('💧 평균 실내 습도 (선택)'),
+                _buildLabel(AppIcons.humidity, '평균 실내 습도 (선택)'),
                 const SizedBox(height: 8),
                 _buildHumiditySlider(),
                 const SizedBox(height: 20),
 
                 // 집 방향
-                _buildLabel('🧭 집 방향'),
+                _buildLabel(AppIcons.direction, '집 방향'),
                 const SizedBox(height: 8),
                 _buildDirectionSelector(),
 
@@ -281,14 +282,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppTheme.gray700,
-      ),
+  Widget _buildLabel(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppTheme.mintPrimary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray700,
+          ),
+        ),
+      ],
     );
   }
 
