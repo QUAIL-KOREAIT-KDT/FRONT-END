@@ -9,6 +9,7 @@ import '../../models/game/mold_tile_model.dart';
 import '../../models/game/mold_game_state.dart';
 import '../../utils/game/game_logic.dart';
 import '../../widgets/game/game_board.dart';
+import '../../services/game_service.dart';
 
 /// 게임 플레이 화면
 class MoldGamePlayScreen extends StatefulWidget {
@@ -103,6 +104,9 @@ class _MoldGamePlayScreenState extends State<MoldGamePlayScreen> {
 
     // 최고 점수 저장
     _saveHighScore(_gameState.score);
+
+    // 서버에 점수 제출 (fire-and-forget)
+    GameService().submitScore(_gameState.score);
 
     setState(() {
       _gameState = _gameState.copyWith(status: GameStatus.finished);

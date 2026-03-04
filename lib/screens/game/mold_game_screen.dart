@@ -44,6 +44,11 @@ class MoldGameScreen extends StatelessWidget {
               // 게임 방법 버튼
               _buildHelpButton(context),
 
+              const SizedBox(height: 8),
+
+              // 랭킹 버튼
+              _buildRankingButton(context),
+
               const Spacer(flex: 1),
             ],
           ),
@@ -145,56 +150,6 @@ class MoldGameScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHighScore() {
-    // TODO: SharedPreferences에서 최고 점수 불러오기
-    const highScore = 0;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFFFD700).withOpacity(0.2),
-            const Color(0xFFFFA500).withOpacity(0.2),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFFFD700).withOpacity(0.5),
-          width: 2,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('👑', style: TextStyle(fontSize: 28)),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '최고 기록',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.gray500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Text(
-                '$highScore점',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFFF8C00),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStartButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -226,6 +181,27 @@ class MoldGameScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRankingButton(BuildContext context) {
+    return TextButton(
+      onPressed: () => Navigator.pushNamed(context, AppRoutes.gameRanking),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.leaderboard_rounded, color: const Color(0xFFFFD700)),
+          const SizedBox(width: 8),
+          Text(
+            '랭킹',
+            style: TextStyle(
+              fontSize: 16,
+              color: const Color(0xFFFFD700),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

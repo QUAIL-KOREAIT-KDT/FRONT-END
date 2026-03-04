@@ -346,6 +346,40 @@ class _MoldGameResultScreenState extends State<MoldGameResultScreen>
 
         const SizedBox(height: 12),
 
+        // 랭킹 보기 버튼
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: OutlinedButton(
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.gameRanking);
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFFD700),
+              side: const BorderSide(color: Color(0xFFFFD700), width: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.leaderboard_rounded, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  '랭킹 보기',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
         // 홈으로 버튼
         SizedBox(
           width: double.infinity,
