@@ -286,28 +286,4 @@ class AuthProvider extends ChangeNotifier {
     _isNewUser = false;
     notifyListeners();
   }
-
-  // 온보딩 완료
-  void completeOnboarding({
-    required String location,
-    required double temperature,
-    required String direction,
-  }) {
-    if (_user != null) {
-      _user = _user!.copyWith(
-        location: location,
-        indoorTemperature: temperature,
-        houseDirection: direction,
-        isOnboardingCompleted: true,
-      );
-      _isNewUser = false;
-      notifyListeners();
-    }
-  }
-
-  // 사용자 정보 업데이트
-  void updateUser(UserModel updatedUser) {
-    _user = updatedUser;
-    notifyListeners();
-  }
 }

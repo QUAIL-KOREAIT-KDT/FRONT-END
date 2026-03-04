@@ -5,7 +5,6 @@ import '../services/iot_service.dart';
 class IotProvider extends ChangeNotifier {
   List<IotDeviceModel> _devices = [];
   bool _isLoading = false;
-  bool _isConnected = false; // Tuya 연동 여부
   bool _isMaster = false; // 마스터 유저 여부
   String? _errorMessage;
 
@@ -13,7 +12,6 @@ class IotProvider extends ChangeNotifier {
 
   List<IotDeviceModel> get devices => _devices;
   bool get isLoading => _isLoading;
-  bool get isConnected => _isConnected;
   bool get isMaster => _isMaster;
   String? get errorMessage => _errorMessage;
 
@@ -30,7 +28,6 @@ class IotProvider extends ChangeNotifier {
 
       if (!_isMaster) {
         _devices = [];
-        _isConnected = false;
         _isLoading = false;
         notifyListeners();
         return;
@@ -39,7 +36,6 @@ class IotProvider extends ChangeNotifier {
       // 2. 마스터 유저만 기기 목록 로드
       final result = await _iotService.getDevices();
       _devices = result.devices;
-      _isConnected = true;
 
       _isLoading = false;
       notifyListeners();
@@ -77,12 +73,5 @@ class IotProvider extends ChangeNotifier {
       debugPrint('[IotProvider] 기기 제어 실패: $e');
       return false;
     }
-  }
-
-  // Tuya 연동 해제
-  void disconnect() {
-    _devices = [];
-    _isConnected = false;
-    notifyListeners();
   }
 }

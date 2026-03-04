@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_icons.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../config/constants.dart';
 import '../services/diagnosis_service.dart';
+import '../widgets/diagnosis/disclaimer_bottom_sheet.dart';
 import 'camera_screen.dart';
 import 'image_crop_screen.dart';
 
@@ -24,7 +26,29 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _isAnalyzing = false;
+  bool _disclaimerAgreed = false;
   final DiagnosisService _diagnosisService = DiagnosisService();
+
+  static const String _disclaimerKey = 'diagnosis_disclaimer_agreed';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDisclaimerStatus();
+  }
+
+  Future<void> _loadDisclaimerStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _disclaimerAgreed = prefs.getBool(_disclaimerKey) ?? false;
+    });
+  }
+
+  Future<void> _saveDisclaimerAgreed() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_disclaimerKey, true);
+    setState(() => _disclaimerAgreed = true);
+  }
 
   /// 화면 상태 초기화 (탭 이동 시 호출)
   void reset() {
@@ -49,6 +73,13 @@ class DiagnosisScreenState extends State<DiagnosisScreen> {
   // 곰팡이 진단 API 호출
   Future<void> _analyzeMold() async {
     if (_selectedImage == null) return;
+
+    // 면책사유 동의 확인 (최초 1회)
+    if (!_disclaimerAgreed) {
+      final agreed = await DiagnosisDisclaimerBottomSheet.show(context);
+      if (!agreed) return;
+      await _saveDisclaimerAgreed();
+    }
 
     setState(() {
       _isLoading = true;

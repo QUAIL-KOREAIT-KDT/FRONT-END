@@ -80,6 +80,15 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             ),
           ),
           const Spacer(),
+          IconButton(
+            onPressed: () => _showTuyaInfoModal(context),
+            tooltip: '안내',
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: AppTheme.gray500,
+              size: 24,
+            ),
+          ),
           Consumer<IotProvider>(
             builder: (context, iotProvider, child) {
               if (!iotProvider.isMaster || iotProvider.isLoading) {
@@ -97,6 +106,117 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showTuyaInfoModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.gray300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'ℹ️ 스마트홈 연동 안내',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.gray800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '현재 스마트홈 연동 서비스는\n'
+              '일부 제한된 환경에서만 이용 가능합니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: AppTheme.gray600,
+                height: 1.7,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.mintLight.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Column(
+                children: [
+                  _TuyaInfoRow(
+                    emoji: '📡',
+                    text: '본 서비스는 Tuya IoT 플랫폼 기반으로 운영됩니다',
+                  ),
+                  SizedBox(height: 10),
+                  _TuyaInfoRow(
+                    emoji: '🔒',
+                    text: '현재 Tuya 기업인증 절차가 진행 중이어서, '
+                        '마스터 계정(개발자)만 이용할 수 있습니다',
+                  ),
+                  SizedBox(height: 10),
+                  _TuyaInfoRow(
+                    emoji: '👥',
+                    text: '기업인증이 완료되면 모든 사용자에게 서비스가 개방될 예정입니다',
+                  ),
+                  SizedBox(height: 10),
+                  _TuyaInfoRow(
+                    emoji: '🏠',
+                    text: 'Tuya 호환 스마트 기기(조명, 플러그, 센서 등)를 연동하여 '
+                        '실내 환경을 제어할 수 있습니다',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppTheme.mintPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  '확인',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -496,6 +616,34 @@ class _IotSettingsScreenState extends State<IotSettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TuyaInfoRow extends StatelessWidget {
+  final String emoji;
+  final String text;
+
+  const _TuyaInfoRow({required this.emoji, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.gray700,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

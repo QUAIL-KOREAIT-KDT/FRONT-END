@@ -373,6 +373,41 @@ class DiagnosisResultScreen extends StatelessWidget {
               ),
 
             const SizedBox(height: 60),
+
+            // 면책 안내 (상시 표시)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.gray100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: AppTheme.gray400,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '본 진단 결과는 AI 모델 기반의 참고 정보이며, '
+                        '전문가의 판단을 대체하지 않습니다. '
+                        '건강 이상이나 심각한 오염이 의심되면 전문가에게 상담하세요.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.gray400,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

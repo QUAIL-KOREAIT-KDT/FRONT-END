@@ -87,73 +87,6 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // 프로필 수정 (API 연동)
-  Future<bool> updateProfile({
-    required String nickname,
-    required String address,
-    required String underground,
-    required String windowDirection,
-    double? indoorTemp,
-    double? indoorHumidity,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final success = await _userService.updateProfile(
-        UserProfileRequest(
-          nickname: nickname,
-          address: address,
-          underground: underground,
-          windowDirection: windowDirection,
-          indoorTemp: indoorTemp,
-          indoorHumidity: indoorHumidity,
-        ),
-      );
-
-      if (success) {
-        _user = _user?.copyWith(
-          nickname: nickname,
-          location: address,
-          houseDirection: windowDirection,
-          indoorTemperature: indoorTemp,
-        );
-        debugPrint('[UserProvider] 프로필 수정 완료');
-      }
-
-      _isLoading = false;
-      notifyListeners();
-      return success;
-    } catch (e) {
-      debugPrint('[UserProvider] 프로필 수정 실패: $e');
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // 회원 탈퇴 (API 연동)
-  Future<bool> withdraw() async {
-    try {
-      final success = await _userService.withdraw();
-      if (success) {
-        _user = null;
-        debugPrint('[UserProvider] 회원 탈퇴 완료');
-      }
-      notifyListeners();
-      return success;
-    } catch (e) {
-      debugPrint('[UserProvider] 회원 탈퇴 실패: $e');
-      return false;
-    }
-  }
-
-  // 사용자 정보 업데이트 (로컬)
-  void updateUser(UserModel updatedUser) {
-    _user = updatedUser;
-    notifyListeners();
-  }
-
   // 집 정보 업데이트 (로컬)
   void updateHomeInfo({
     String? location,
@@ -191,11 +124,5 @@ class UserProvider extends ChangeNotifier {
       debugPrint('[UserProvider] 닉네임 업데이트 실패: $e');
       return false;
     }
-  }
-
-  // 사용자 정보 초기화
-  void clearUser() {
-    _user = null;
-    notifyListeners();
   }
 }

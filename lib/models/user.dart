@@ -23,36 +23,6 @@ class UserModel {
     this.isOnboardingCompleted = false,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'],
-      email: json['email'],
-      nickname: json['nickname'],
-      profileImage: json['profile_image'],
-      location: json['location'],
-      indoorTemperature: json['indoor_temperature']?.toDouble(),
-      indoorHumidity: json['indoor_humidity']?.toDouble(),
-      houseDirection: json['house_direction'],
-      underground: json['underground'],
-      isOnboardingCompleted: json['is_onboarding_completed'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'nickname': nickname,
-      'profile_image': profileImage,
-      'location': location,
-      'indoor_temperature': indoorTemperature,
-      'indoor_humidity': indoorHumidity,
-      'house_direction': houseDirection,
-      'underground': underground,
-      'is_onboarding_completed': isOnboardingCompleted,
-    };
-  }
-
   UserModel copyWith({
     String? id,
     String? email,

@@ -152,18 +152,6 @@ class UserService {
     }
   }
 
-  /// 프로필 수정 (전체)
-  Future<bool> updateProfile(UserProfileRequest data) async {
-    try {
-      await _apiService.dio.put('/users/profile-info', data: data.toJson());
-      debugPrint('[UserService] 프로필 수정 성공');
-      return true;
-    } on DioException catch (e) {
-      debugPrint('[UserService] 프로필 수정 실패: ${e.response?.data}');
-      return false;
-    }
-  }
-
   /// 프로필 부분 수정 (변경된 필드만)
   Future<bool> updateProfilePartial(UserProfilePartialUpdate data) async {
     try {
@@ -172,18 +160,6 @@ class UserService {
       return true;
     } on DioException catch (e) {
       debugPrint('[UserService] 프로필 부분 수정 실패: ${e.response?.data}');
-      return false;
-    }
-  }
-
-  /// 회원 탈퇴
-  Future<bool> withdraw() async {
-    try {
-      await _apiService.dio.delete('/users/withdraw');
-      debugPrint('[UserService] 회원 탈퇴 성공');
-      return true;
-    } on DioException catch (e) {
-      debugPrint('[UserService] 회원 탈퇴 실패: ${e.response?.data}');
       return false;
     }
   }
